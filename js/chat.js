@@ -14,6 +14,12 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 import { searchUsers } from './search.js';
 
+// Import functions from friends2.js
+import { createChatId } from './friends2.js';
+
+// Add import for username guard
+import { initUsernameGuard } from './username-guard.js';
+
 // DOM Elements
 const messageForm = document.getElementById('message-form');
 const messageInput = document.getElementById('message-input');
@@ -39,43 +45,91 @@ let currentChatId = null;
 let currentChatUser = null;
 
 // Check authentication state
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
+        console.log("Auth state changed - user logged in:", user.uid);
         
-        // Get user's username from database
-        const userRef = ref(database, 'users/' + user.uid);
-        onValue(userRef, (snapshot) => {
-            const userData = snapshot.val();
-            if (userData) {
-                username = userData.username;
+        try {
+            // Initialize username guard to ensure username is consistent
+            const guardedUsername = await initUsernameGuard();
+            
+            if (guardedUsername) {
+                console.log("Using guarded username:", guardedUsername);
+                username = guardedUsername;
+                
+                // Update UI immediately with the guarded username
                 if (userNameSpan) {
                     userNameSpan.textContent = username;
                 }
+            }
+        } catch (guardError) {
+            console.error("Error in username guard:", guardError);
+        }
+        
+        // Continue with existing code but use the username from guard first
+        const userRef = ref(database, 'users/' + user.uid);
+        onValue(userRef, async (snapshot) => {
+            const userData = snapshot.val();
+            
+            if (userData && userData.username) {
+                // Only update username if we don't have a guarded one yet
+                if (!username) {
+                    console.log("Using username from database:", userData.username);
+                    username = userData.username;
+                    
+                    // Update UI
+                    if (userNameSpan) {
+                        userNameSpan.textContent = username;
+                    }
+                }
                 
-                // Update user status to online
-                set(ref(database, `users/${user.uid}/status`), "online");
+                // Always update online status
+                await set(ref(database, `users/${user.uid}/status`), "online");
             } else {
-                console.warn("User data not found in database. Creating default profile.");
-                // Create default profile if missing
-                const defaultProfile = {
-                    username: user.email ? user.email.split('@')[0] : 'User',
-                    email: user.email,
-                    status: "online",
-                    created_at: serverTimestamp()
-                };
+                console.warn("User data missing or invalid username:", userData);
                 
-                set(ref(database, `users/${user.uid}`), defaultProfile)
-                    .then(() => {
-                        console.log("Created default profile for user");
-                        username = defaultProfile.username;
+                // If we already have a username from the guard, use that
+                if (username) {
+                    console.log("Using existing username:", username);
+                    
+                    // Ensure it's saved in the database
+                    try {
+                        const profileUpdate = {
+                            username: username,
+                            status: "online",
+                        };
+                        
+                        if (!userData || !userData.created_at) {
+                            profileUpdate.created_at = serverTimestamp();
+                        }
+                        
+                        await update(ref(database, `users/${user.uid}`), profileUpdate);
+                    } catch (updateError) {
+                        console.error("Error updating profile:", updateError);
+                    }
+                } else {
+                    // Fallback to displayName or email
+                    username = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
+                    console.log("Fallback to username:", username);
+                    
+                    // Create default profile
+                    try {
+                        await update(ref(database, `users/${user.uid}`), {
+                            username: username,
+                            email: user.email || '',
+                            status: "online",
+                            created_at: serverTimestamp()
+                        });
+                        
+                        // Update UI
                         if (userNameSpan) {
                             userNameSpan.textContent = username;
                         }
-                    })
-                    .catch(error => {
-                        console.error("Error creating default profile:", error);
-                    });
+                    } catch (err) {
+                        console.error("Error creating default profile:", err);
+                    }
+                }
             }
         });
         
@@ -502,11 +556,6 @@ if (searchInput) {
     }, 300));
 }
 
-// Helper function to create a chat ID from two user IDs
-function createChatId(userId1, userId2) {
-    return userId1 < userId2 ? `${userId1}_${userId2}` : `${userId2}_${userId1}`;
-}
-
 // Cleanup function to remove event listeners and references
 function cleanup() {
     // Remove chat listeners
@@ -518,7 +567,6 @@ function cleanup() {
 
 // Make functions available globally for the friends.js file
 window.openChat = openChat;
-window.createChatId = createChatId;
 
 // Ensure the window is closed with the user marked as offline
 window.addEventListener('beforeunload', async () => {
@@ -535,4 +583,4 @@ window.addEventListener('beforeunload', async () => {
     }
 });
 
-export { currentUser, username, createChatId, openChat };
+export { currentUser, username, openChat };

@@ -90,15 +90,37 @@ async function loadUserProfile() {
     try {
         if (!currentUser) return;
         
+        console.log("Loading profile for user:", currentUser.uid);
+        
         const userDataRef = dbRef(database, `users/${currentUser.uid}`);
         const snapshot = await get(userDataRef);
         
         if (snapshot.exists()) {
             userProfileData = snapshot.val();
             
-            // Fill form fields with user data
+            console.log("Loaded user profile data:", userProfileData);
+            
+            // Fill form fields with user data (giving priority to database username)
             if (usernameInput) {
-                usernameInput.value = userProfileData.username || '';
+                // Use the username from database or fallback to displayName or email part
+                const displayUsername = userProfileData.username || currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'User');
+                console.log("Setting username input to:", displayUsername);
+                usernameInput.value = displayUsername;
+                
+                // If database username doesn't match the username in auth, update it
+                if (!userProfileData.username || userProfileData.username !== displayUsername) {
+                    console.log("Updating profile with correct username:", displayUsername);
+                    await update(dbRef(database, `users/${currentUser.uid}`), {
+                        username: displayUsername
+                    });
+                    
+                    // Update local data
+                    userProfileData.username = displayUsername;
+                }
+            }
+            
+            if (emailInput) {
+                emailInput.value = userProfileData.email || currentUser.email || '';
             }
             
             if (bioInput) {
@@ -111,20 +133,29 @@ async function loadUserProfile() {
                     profilePicture.innerHTML = `<img src="${userProfileData.profile_picture}" alt="Profile" class="w-full h-full object-cover">`;
                 } else {
                     // Display initials if no profile picture
-                    const initial = userProfileData.username ? userProfileData.username.charAt(0).toUpperCase() : '?';
+                    const username = userProfileData.username || '';
+                    const initial = username ? username.charAt(0).toUpperCase() : '?';
                     profilePicture.textContent = initial;
                 }
             }
         } else {
             console.warn("User data not found in database for:", currentUser.uid);
             
-            // If no user data exists, create default data
-            // This can happen if account was created but database write failed
+            // If no user data exists, prioritize displayName over email username part
+            const displayName = currentUser.displayName || '';
+            const emailUsername = currentUser.email ? currentUser.email.split('@')[0] : '';
+            const defaultUsername = displayName || emailUsername || 'User';
+            
+            console.log("Creating default profile with username:", defaultUsername);
+            
             const defaultProfileData = {
-                username: currentUser.displayName || currentUser.email?.split('@')[0] || 'User',
-                email: currentUser.email,
+                username: defaultUsername,
+                email: currentUser.email || '',
                 bio: '',
-                created_at: serverTimestamp()
+                profile_picture: '',
+                status: "online",
+                created_at: serverTimestamp(),
+                last_updated: serverTimestamp()
             };
             
             // Save this default data
@@ -135,15 +166,25 @@ async function loadUserProfile() {
             
             // Fill form fields with default data
             if (usernameInput) {
-                usernameInput.value = defaultProfileData.username;
+                usernameInput.value = defaultUsername;
+            }
+            
+            if (emailInput) {
+                emailInput.value = currentUser.email || '';
             }
             
             // Update UI with default initial
             if (profilePicture) {
-                const initial = defaultProfileData.username.charAt(0).toUpperCase();
+                const initial = defaultUsername.charAt(0).toUpperCase();
                 profilePicture.textContent = initial;
             }
         }
+        
+        // Ensure username is shown in header
+        if (userNameSpan && userProfileData.username) {
+            userNameSpan.textContent = userProfileData.username;
+        }
+        
     } catch (error) {
         console.error("Error loading user profile:", error);
         throw new Error("Failed to load profile information");
@@ -222,6 +263,8 @@ if (profileForm) {
             submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
             submitButton.disabled = true;
             
+            console.log("Updating profile with username:", username);
+            
             // Update user profile in database
             await update(dbRef(database, `users/${currentUser.uid}`), {
                 username,
@@ -247,10 +290,6 @@ if (profileForm) {
             // Restore button state
             submitButton.innerHTML = originalButtonText;
             submitButton.disabled = false;
-            
-            // Ensure form fields maintain their values
-            usernameInput.value = username;
-            bioInput.value = bio;
             
         } catch (error) {
             console.error("Error updating profile:", error);

@@ -8,6 +8,7 @@
 
 .user-item {
     transition: all 0.2s ease;
+    position: relative;  /* Add positioning context */
 }
 
 .user-item:hover {
@@ -122,4 +123,34 @@
 
 #upload-photo-btn:hover {
     background-color: #e5e7eb;
+}
+
+/* Cross-browser compatibility fixes */
+.user-item button,
+.search-result-item button {
+    align-self: center;  /* Align button vertically */
+    position: relative;  /* Create stacking context */
+    margin: auto 0;      /* Center vertically */
+    height: fit-content; /* Ensure button size matches content */
+}
+
+/* Ensure flexbox alignment is consistent across browsers */
+.items-center {
+    display: flex;
+    align-items: center;
+}
+
+.justify-between {
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Specific fix for "Add Friend" buttons in Chrome */
+.browse-user-action-btn {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    padding-top: 0.25rem;    /* 4px */
+    padding-bottom: 0.25rem; /* 4px */
+    min-height: 32px;        /* Consistent height */
 }

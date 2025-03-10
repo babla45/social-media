@@ -6,6 +6,7 @@
     <title>Messenger - Chat App</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css"> <!-- Added direct link to our CSS file -->
 </head>
 <body class="bg-gray-100 h-screen flex flex-col">
     <header class="bg-blue-600 text-white p-4 shadow-md">
@@ -169,7 +170,10 @@
         </div>
     </div>
     
+    <!-- Scripts - remove the debug-initializer.js and data-initializer.js imports -->
+    <script src="js/username-guard.js" type="module"></script>
     <script src="js/chat.js" type="module"></script>
+    <script src="js/friends2.js" type="module"></script>
     <script src="js/friends.js" type="module"></script>
 </body>
 </html>

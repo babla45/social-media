@@ -20,6 +20,16 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.4.0/fi
 // Import the improved search functionality
 import { searchUsers as performUserSearch } from './search.js';
 
+// Import functions from friends2.js
+import { 
+    checkFriendshipStatus,
+    sendFriendRequest,
+    acceptFriendRequest,
+    rejectFriendRequest,
+    startChat,
+    createChatId
+} from './friends2.js';
+
 // DOM Elements
 const searchInput = document.getElementById('search-input');
 const addFriendModal = document.getElementById('add-friend-modal');
@@ -68,6 +78,65 @@ document.addEventListener('DOMContentLoaded', () => {
     if (browseTab) {
         browseTab.addEventListener('click', () => {
             loadAllUsers();
+        });
+    }
+    
+    // Filter buttons
+    const filterAllBtn = document.getElementById('filter-all');
+    const filterOnlineBtn = document.getElementById('filter-online');
+    
+    if (filterAllBtn && filterOnlineBtn) {
+        filterAllBtn.addEventListener('click', () => {
+            filterAllBtn.classList.remove('bg-gray-200', 'text-gray-700');
+            filterAllBtn.classList.add('bg-blue-500', 'text-white');
+            filterOnlineBtn.classList.remove('bg-blue-500', 'text-white');
+            filterOnlineBtn.classList.add('bg-gray-200', 'text-gray-700');
+            
+            // Show all users
+            const userElements = allUsersContainer.querySelectorAll('.user-item, div[class*="p-3 border-b"]');
+            userElements.forEach(el => el.classList.remove('hidden'));
+            
+            // Update count
+            if (document.getElementById('user-count')) {
+                document.getElementById('user-count').textContent = userElements.length;
+            }
+        });
+        
+        filterOnlineBtn.addEventListener('click', () => {
+            filterOnlineBtn.classList.remove('bg-gray-200', 'text-gray-700');
+            filterOnlineBtn.classList.add('bg-blue-500', 'text-white');
+            filterAllBtn.classList.remove('bg-blue-500', 'text-white');
+            filterAllBtn.classList.add('bg-gray-200', 'text-gray-700');
+            
+            // Filter for online users only
+            const userElements = allUsersContainer.querySelectorAll('.user-item, div[class*="p-3 border-b"]');
+            let onlineCount = 0;
+            
+            userElements.forEach(el => {
+                const statusDot = el.querySelector('div[class*="bg-green-500"]');
+                if (statusDot) {
+                    el.classList.remove('hidden');
+                    onlineCount++;
+                } else {
+                    el.classList.add('hidden');
+                }
+            });
+            
+            // Update count
+            if (document.getElementById('user-count')) {
+                document.getElementById('user-count').textContent = onlineCount;
+            }
+            
+            // Show message if no online users
+            if (onlineCount === 0 && allUsersContainer.querySelector('.no-online-users') === null) {
+                const noOnlineMsg = document.createElement('div');
+                noOnlineMsg.className = 'p-4 text-center text-gray-500 no-online-users';
+                noOnlineMsg.textContent = 'No users are currently online';
+                allUsersContainer.appendChild(noOnlineMsg);
+            } else if (onlineCount > 0) {
+                const noOnlineMsg = allUsersContainer.querySelector('.no-online-users');
+                if (noOnlineMsg) noOnlineMsg.remove();
+            }
         });
     }
 });
@@ -121,7 +190,7 @@ function showSearchResults(users) {
     
     users.forEach(user => {
         const userElement = document.createElement('div');
-        userElement.className = 'p-3 border-b flex items-center justify-between';
+        userElement.className = 'p-3 border-b flex items-center justify-between search-result-item'; // Added class
         
         const userInfo = document.createElement('div');
         userInfo.className = 'flex items-center';
@@ -167,7 +236,7 @@ function showSearchResults(users) {
                 switch(status) {
                     case 'friends':
                         actionButton.textContent = 'Message';
-                        actionButton.className = 'px-4 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600';
+                        actionButton.className = 'px-4 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 browse-user-action-btn'; // Added class
                         actionButton.onclick = (e) => {
                             e.preventDefault();
                             startChat(user.id, user.username);
@@ -175,35 +244,45 @@ function showSearchResults(users) {
                         break;
                     case 'pending_sent':
                         actionButton.textContent = 'Request Sent';
-                        actionButton.className = 'px-4 py-1 bg-gray-300 text-gray-600 rounded-full cursor-default';
+                        actionButton.className = 'px-4 py-1 bg-gray-300 text-gray-600 rounded-full cursor-default browse-user-action-btn'; // Added class
                         actionButton.disabled = true;
                         break;
                     case 'pending_received':
                         actionButton.textContent = 'Accept';
-                        actionButton.className = 'px-4 py-1 bg-green-500 text-white rounded-full hover:bg-green-600';
+                        actionButton.className = 'px-4 py-1 bg-green-500 text-white rounded-full hover:bg-green-600 browse-user-action-btn'; // Added class
                         actionButton.onclick = (e) => {
                             e.preventDefault();
-                            acceptFriendRequest(user.id);
+                            handleAcceptFriendRequest(user.id);
                         };
                         break;
                     default:
                         actionButton.textContent = 'Add Friend';
-                        actionButton.className = 'px-4 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600';
+                        actionButton.className = 'px-4 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 browse-user-action-btn'; // Added class
                         actionButton.onclick = (e) => {
                             e.preventDefault();
                             
                             // Immediate feedback by updating button
                             actionButton.textContent = 'Request Sent';
-                            actionButton.className = 'px-4 py-1 bg-gray-300 text-gray-600 rounded-full cursor-default';
+                            actionButton.className = 'px-4 py-1 bg-gray-300 text-gray-600 rounded-full cursor-default browse-user-action-btn'; // Added class
                             actionButton.disabled = true;
                             
-                            sendFriendRequest(user.id, user.username).catch(error => {
-                                console.error("Error sending friend request:", error);
-                                // Restore button on error
-                                actionButton.textContent = 'Add Friend';
-                                actionButton.className = 'px-4 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600';
-                                actionButton.disabled = false;
-                            });
+                            // Use the function from friends2.js
+                            sendFriendRequest(user.id, user.username, actionButton)
+                                .then(result => {
+                                    if (result.success && modalError) {
+                                        modalError.textContent = result.message;
+                                        modalError.classList.remove('hidden', 'text-red-500');
+                                        modalError.classList.add('text-green-500');
+                                        
+                                        // Hide confirmation after 3 seconds
+                                        setTimeout(() => {
+                                            modalError.classList.add('hidden');
+                                        }, 3000);
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error("Error sending friend request:", error);
+                                });
                         };
                 }
                 
@@ -214,10 +293,10 @@ function showSearchResults(users) {
             .catch(error => {
                 console.error('Error checking friendship status:', error);
                 actionButton.textContent = 'Add Friend';
-                actionButton.className = 'px-4 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600';
+                actionButton.className = 'px-4 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 browse-user-action-btn'; // Added class
                 actionButton.onclick = (e) => {
                     e.preventDefault();
-                    sendFriendRequest(user.id, user.username);
+                    sendFriendRequest(user.id, user.username, actionButton);
                 };
                 
                 userElement.appendChild(userInfo);
@@ -227,102 +306,16 @@ function showSearchResults(users) {
     });
 }
 
-// Check friendship status: 'none', 'friends', 'pending_sent', 'pending_received'
-async function checkFriendshipStatus(userId) {
-    try {
-        const currentUser = auth.currentUser;
-        
-        // Check if they are already friends
-        const friendRef = ref(database, `friends/${currentUser.uid}/${userId}`);
-        const friendSnapshot = await get(friendRef);
-        
-        if (friendSnapshot.exists()) {
-            return 'friends';
-        }
-        
-        // Check if current user sent a request
-        const sentRequestRef = ref(database, `friendRequests/${userId}/${currentUser.uid}`);
-        const sentRequestSnapshot = await get(sentRequestRef);
-        
-        if (sentRequestSnapshot.exists()) {
-            return 'pending_sent';
-        }
-        
-        // Check if current user received a request
-        const receivedRequestRef = ref(database, `friendRequests/${currentUser.uid}/${userId}`);
-        const receivedRequestSnapshot = await get(receivedRequestRef);
-        
-        if (receivedRequestSnapshot.exists()) {
-            return 'pending_received';
-        }
-        
-        return 'none';
-    } catch (error) {
-        console.error('Error checking friendship status:', error);
-        return 'error';
-    }
-}
-
-// Helper function to create a chat ID from two user IDs
-function createChatId(userId1, userId2) {
-    return userId1 < userId2 ? `${userId1}_${userId2}` : `${userId2}_${userId1}`;
-}
-
-// Send friend request - update to fix button state issues
-async function sendFriendRequest(userId, username) {
-    try {
-        // Immediately update the button before the request completes
-        if (event && event.target) {
+// Helper function to handle accept friend request with UI updates
+async function handleAcceptFriendRequest(userId) {
+    const result = await acceptFriendRequest(userId);
+    
+    if (result.success) {
+        // If this was from a button click, update the button
+        if (event && event.target && event.target.textContent === 'Accept') {
             const button = event.target;
-            
-            // Save the original button state in case we need to revert on error
-            const originalText = button.textContent;
-            const originalClass = button.className;
-            const originalDisabled = button.disabled;
-            
-            // Update button to "Request Sent" state
-            button.textContent = 'Request Sent';
-            button.className = 'px-4 py-1 bg-gray-300 text-gray-600 rounded-full cursor-default';
-            button.disabled = true;
-        }
-        
-        const currentUser = auth.currentUser;
-        const userSnapshot = await get(ref(database, `users/${currentUser.uid}`));
-        const userData = userSnapshot.val();
-        
-        await set(ref(database, `friendRequests/${userId}/${currentUser.uid}`), {
-            username: userData.username,
-            timestamp: serverTimestamp()
-        });
-        
-        // Show success notification
-        if (modalError) {
-            modalError.textContent = `Friend request sent to ${username}`;
-            modalError.classList.remove('hidden', 'text-red-500');
-            modalError.classList.add('text-green-500');
-            
-            // Hide confirmation after 3 seconds
-            setTimeout(() => {
-                modalError.classList.add('hidden');
-            }, 3000);
-        }
-        
-    } catch (error) {
-        console.error('Error sending friend request:', error);
-        
-        // Revert button state on error if we have an event target
-        if (event && event.target) {
-            const button = event.target;
-            button.textContent = 'Add Friend';
-            button.className = 'px-4 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600';
-            button.disabled = false;
-        }
-        
-        // Show error message
-        if (modalError) {
-            modalError.textContent = 'Failed to send friend request. Please try again.';
-            modalError.classList.remove('hidden', 'text-green-500');
-            modalError.classList.add('text-red-500');
+            button.textContent = 'Message';
+            button.onclick = () => startChat(userId, result.username);
         }
     }
 }
@@ -331,18 +324,11 @@ async function sendFriendRequest(userId, username) {
 function handleAddFriendClick(userId, username, button) {
     // Immediately update button appearance
     button.textContent = 'Request Sent';
-    button.className = 'px-4 py-1 bg-gray-300 text-gray-600 rounded-full cursor-default';
+    button.className = 'px-4 py-1 bg-gray-300 text-gray-600 rounded-full cursor-default browse-user-action-btn'; // Added class
     button.disabled = true;
     
-    // Call the sendFriendRequest function
-    sendFriendRequest(userId, username).catch(error => {
-        console.error("Error sending friend request:", error);
-        
-        // Restore button on error
-        button.textContent = 'Add Friend';
-        button.className = 'px-4 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600';
-        button.disabled = false;
-    });
+    // Use the function from friends2.js
+    sendFriendRequest(userId, username, button);
 }
 
 // Load friend requests
@@ -399,7 +385,7 @@ function loadFriendRequests() {
             acceptBtn.className = 'px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600';
             acceptBtn.onclick = (e) => {
                 e.preventDefault();
-                acceptFriendRequest(userId);
+                handleAcceptFriendRequest(userId);
             };
             
             const rejectBtn = document.createElement('button');
@@ -419,80 +405,6 @@ function loadFriendRequests() {
             requestsContent.appendChild(requestElement);
         });
     });
-}
-
-// Accept friend request
-async function acceptFriendRequest(userId) {
-    try {
-        const currentUser = auth.currentUser;
-        
-        // Get request data
-        const requestRef = ref(database, `friendRequests/${currentUser.uid}/${userId}`);
-        const requestSnapshot = await get(requestRef);
-        
-        if (!requestSnapshot.exists()) {
-            console.error('Friend request does not exist');
-            return;
-        }
-        
-        const requestData = requestSnapshot.val();
-        
-        // Get current user data
-        const userSnapshot = await get(ref(database, `users/${currentUser.uid}`));
-        const userData = userSnapshot.val();
-        
-        // Add to both users' friends lists
-        const updates = {};
-        updates[`friends/${currentUser.uid}/${userId}`] = {
-            username: requestData.username,
-            timestamp: serverTimestamp()
-        };
-        
-        updates[`friends/${userId}/${currentUser.uid}`] = {
-            username: userData.username,
-            timestamp: serverTimestamp()
-        };
-        
-        // Create a chat between users if it doesn't exist
-        const chatId = createChatId(currentUser.uid, userId);
-        updates[`chats/${chatId}/participants`] = {
-            [currentUser.uid]: true,
-            [userId]: true
-        };
-        
-        updates[`userChats/${currentUser.uid}/${chatId}`] = {
-            timestamp: serverTimestamp()
-        };
-        
-        updates[`userChats/${userId}/${chatId}`] = {
-            timestamp: serverTimestamp()
-        };
-        
-        // Remove the friend request
-        updates[`friendRequests/${currentUser.uid}/${userId}`] = null;
-        
-        await update(ref(database), updates);
-        
-        // If this was accepted from the modal, update the button
-        if (event && event.target.textContent === 'Accept') {
-            const button = event.target;
-            button.textContent = 'Message';
-            button.onclick = () => startChat(userId, requestData.username);
-        }
-        
-    } catch (error) {
-        console.error('Error accepting friend request:', error);
-    }
-}
-
-// Reject friend request
-async function rejectFriendRequest(userId) {
-    try {
-        const currentUser = auth.currentUser;
-        await remove(ref(database, `friendRequests/${currentUser.uid}/${userId}`));
-    } catch (error) {
-        console.error('Error rejecting friend request:', error);
-    }
 }
 
 // Load friends list
@@ -542,111 +454,6 @@ function loadFriends() {
             friendsContent.appendChild(friendElement);
         });
     });
-}
-
-// Start a chat with a friend
-function startChat(userId, username) {
-    const currentUser = auth.currentUser;
-    const chatId = createChatId(currentUser.uid, userId);
-    
-    // Close the modal if open
-    if (addFriendModal && !addFriendModal.classList.contains('hidden')) {
-        addFriendModal.classList.add('hidden');
-    }
-    
-    // Switch to chats tab
-    const chatsTab = document.getElementById('chats-tab');
-    if (chatsTab) {
-        chatsTab.click();
-    }
-    
-    // Find and click on existing chat or create it
-    const existingChat = document.querySelector(`[data-chat-id="${chatId}"]`);
-    
-    if (existingChat) {
-        existingChat.click();
-    } else {
-        // Create a new chat
-        createAndOpenNewChat(chatId, userId, username);
-    }
-}
-
-// Create and open a new chat
-async function createAndOpenNewChat(chatId, userId, username) {
-    try {
-        const currentUser = auth.currentUser;
-        
-        // Create chat in database
-        const updates = {};
-        updates[`chats/${chatId}/participants`] = {
-            [currentUser.uid]: true,
-            [userId]: true
-        };
-        
-        updates[`userChats/${currentUser.uid}/${chatId}`] = {
-            timestamp: serverTimestamp()
-        };
-        
-        updates[`userChats/${userId}/${chatId}`] = {
-            timestamp: serverTimestamp()
-        };
-        
-        await update(ref(database), updates);
-        
-        // Manually create UI for this chat since the listener might not trigger immediately
-        const userSnapshot = await get(ref(database, `users/${userId}`));
-        const userData = userSnapshot.val();
-        
-        const chatElement = document.createElement('div');
-        chatElement.className = 'p-3 hover:bg-gray-100 cursor-pointer flex items-center border-b';
-        chatElement.dataset.chatId = chatId;
-        chatElement.dataset.userId = userId;
-        chatElement.dataset.username = username;
-        
-        const statusClass = userData && userData.status === "online" ? "bg-green-500" : "bg-gray-300";
-        
-        chatElement.innerHTML = `
-            <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center mr-3">
-                <span>${username.charAt(0).toUpperCase()}</span>
-            </div>
-            <div class="flex-1">
-                <div class="flex justify-between">
-                    <h3 class="font-medium">${username}</h3>
-                    <span class="text-xs text-gray-500">New</span>
-                </div>
-                <p class="text-sm text-gray-500 truncate">Start a conversation</p>
-            </div>
-            <div class="ml-2 w-3 h-3 rounded-full ${statusClass}"></div>
-        `;
-        
-        chatElement.addEventListener('click', () => {
-            // Find function to open a chat and call it
-            const openChat = window.openChat || (window.chatFunctions && window.chatFunctions.openChat);
-            if (typeof openChat === 'function') {
-                openChat(chatId, userId, username);
-            } else {
-                console.error('openChat function not found');
-            }
-        });
-        
-        const chatsContent = document.getElementById('chats-content');
-        const noChatsMessage = document.getElementById('no-chats-message');
-        
-        if (noChatsMessage) {
-            noChatsMessage.classList.add('hidden');
-        }
-        
-        if (chatsContent.firstChild) {
-            chatsContent.insertBefore(chatElement, chatsContent.firstChild);
-        } else {
-            chatsContent.appendChild(chatElement);
-        }
-        
-        // Trigger a click to open this chat
-        chatElement.click();
-    } catch (error) {
-        console.error('Error creating new chat:', error);
-    }
 }
 
 // Load all users
@@ -815,7 +622,7 @@ async function loadAllUsers(forceRefresh = false) {
                 
                 // Action button
                 const actionButton = document.createElement('button');
-                actionButton.className = 'px-4 py-1 rounded-full bg-gray-200 text-gray-700';
+                actionButton.className = 'px-4 py-1 rounded-full bg-gray-200 text-gray-700 browse-user-action-btn'; // Added class for Chrome fix
                 actionButton.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
                 
                 userElement.appendChild(userInfo);
@@ -828,22 +635,22 @@ async function loadAllUsers(forceRefresh = false) {
                     switch(status) {
                         case 'friends':
                             actionButton.textContent = 'Message';
-                            actionButton.className = 'px-4 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600';
+                            actionButton.className = 'px-4 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 browse-user-action-btn'; // Added class
                             actionButton.onclick = () => startChat(user.id, user.username);
                             break;
                         case 'pending_sent':
                             actionButton.textContent = 'Request Sent';
-                            actionButton.className = 'px-4 py-1 bg-gray-300 text-gray-600 rounded-full cursor-default';
+                            actionButton.className = 'px-4 py-1 bg-gray-300 text-gray-600 rounded-full cursor-default browse-user-action-btn'; // Added class
                             actionButton.disabled = true;
                             break;
                         case 'pending_received':
                             actionButton.textContent = 'Accept';
-                            actionButton.className = 'px-4 py-1 bg-green-500 text-white rounded-full hover:bg-green-600';
+                            actionButton.className = 'px-4 py-1 bg-green-500 text-white rounded-full hover:bg-green-600 browse-user-action-btn'; // Added class
                             actionButton.onclick = () => acceptFriendRequest(user.id);
                             break;
                         default:
                             actionButton.textContent = 'Add Friend';
-                            actionButton.className = 'px-4 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600';
+                            actionButton.className = 'px-4 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 browse-user-action-btn'; // Added class
                             actionButton.onclick = () => {
                                 // Call our new function with needed arguments
                                 handleAddFriendClick(user.id, user.username, actionButton);
@@ -852,8 +659,8 @@ async function loadAllUsers(forceRefresh = false) {
                 }).catch(err => {
                     console.error("Error checking friendship status:", err);
                     actionButton.textContent = 'Add Friend';
-                    actionButton.className = 'px-4 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600';
-                    actionButton.onclick = () => sendFriendRequest(user.id, user.username);
+                    actionButton.className = 'px-4 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 browse-user-action-btn'; // Added class
+                    actionButton.onclick = () => handleAddFriendClick(user.id, user.username, actionButton);
                 });
             }
             
@@ -907,69 +714,3 @@ window.startChat = startChat;
 
 // Export functions that might be needed elsewhere
 export { loadFriends, loadFriendRequests, loadAllUsers };
-
-// Add filter functionality for online/offline users
-document.addEventListener('DOMContentLoaded', () => {
-    // ...existing code...
-
-    // Filter buttons
-    const filterAllBtn = document.getElementById('filter-all');
-    const filterOnlineBtn = document.getElementById('filter-online');
-    
-    if (filterAllBtn && filterOnlineBtn) {
-        filterAllBtn.addEventListener('click', () => {
-            filterAllBtn.classList.remove('bg-gray-200', 'text-gray-700');
-            filterAllBtn.classList.add('bg-blue-500', 'text-white');
-            filterOnlineBtn.classList.remove('bg-blue-500', 'text-white');
-            filterOnlineBtn.classList.add('bg-gray-200', 'text-gray-700');
-            
-            // Show all users
-            const userElements = allUsersContainer.querySelectorAll('.user-item, div[class*="p-3 border-b"]');
-            userElements.forEach(el => el.classList.remove('hidden'));
-            
-            // Update count
-            if (document.getElementById('user-count')) {
-                document.getElementById('user-count').textContent = userElements.length;
-            }
-        });
-        
-        filterOnlineBtn.addEventListener('click', () => {
-            filterOnlineBtn.classList.remove('bg-gray-200', 'text-gray-700');
-            filterOnlineBtn.classList.add('bg-blue-500', 'text-white');
-            filterAllBtn.classList.remove('bg-blue-500', 'text-white');
-            filterAllBtn.classList.add('bg-gray-200', 'text-gray-700');
-            
-            // Filter for online users only
-            const userElements = allUsersContainer.querySelectorAll('.user-item, div[class*="p-3 border-b"]');
-            let onlineCount = 0;
-            
-            userElements.forEach(el => {
-                const statusDot = el.querySelector('div[class*="bg-green-500"]');
-                if (statusDot) {
-                    el.classList.remove('hidden');
-                    onlineCount++;
-                } else {
-                    el.classList.add('hidden');
-                }
-            });
-            
-            // Update count
-            if (document.getElementById('user-count')) {
-                document.getElementById('user-count').textContent = onlineCount;
-            }
-            
-            // Show message if no online users
-            if (onlineCount === 0 && allUsersContainer.querySelector('.no-online-users') === null) {
-                const noOnlineMsg = document.createElement('div');
-                noOnlineMsg.className = 'p-4 text-center text-gray-500 no-online-users';
-                noOnlineMsg.textContent = 'No users are currently online';
-                allUsersContainer.appendChild(noOnlineMsg);
-            } else if (onlineCount > 0) {
-                const noOnlineMsg = allUsersContainer.querySelector('.no-online-users');
-                if (noOnlineMsg) noOnlineMsg.remove();
-            }
-        });
-    }
-});
-
-// ...existing code...

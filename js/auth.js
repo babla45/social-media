@@ -3,9 +3,10 @@ import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
     signOut,
-    onAuthStateChanged 
+    onAuthStateChanged,
+    updateProfile 
 } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
-import { ref, set, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+import { ref, set, serverTimestamp, update } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 
 // Check auth state
 onAuthStateChanged(auth, (user) => {
@@ -34,7 +35,7 @@ if (signupForm) {
         
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
-        const username = document.getElementById('username').value;
+        const username = document.getElementById('username').value.trim();
         const errorMessage = document.getElementById('error-message');
         const submitButton = signupForm.querySelector('button[type="submit"]');
         
@@ -54,25 +55,44 @@ if (signupForm) {
                 throw new Error("Username must be at least 3 characters long");
             }
             
+            console.log("Creating user with username:", username);
+            
             // Create user account
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
             
-            // Create user data object
+            // Update user profile with display name
+            await updateProfile(user, {
+                displayName: username
+            });
+            
+            // Create user data object with the username from the form input
             const userData = {
                 username: username,
                 email: email,
                 profile_picture: "",
+                bio: "",
                 status: "online",
                 created_at: serverTimestamp()
             };
             
+            console.log("Saving user data:", userData);
+            
             // Save user data to Realtime Database
             await set(ref(database, 'users/' + user.uid), userData);
-            console.log("User data saved successfully");
+            console.log("User data saved successfully with username:", username);
             
-            // Redirect to chat page
-            window.location.href = 'chat.html';
+            // Double-check to ensure the username is saved correctly
+            await update(ref(database, 'users/' + user.uid), {
+                username: username // Ensure this exact value is set
+            });
+            
+            // Add a small delay to allow database writes to complete
+            setTimeout(() => {
+                // Redirect to chat page
+                window.location.href = 'chat.html';
+            }, 500);
+            
         } catch (error) {
             console.error("Signup error:", error);
             
