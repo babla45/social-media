@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messenger - Chat App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 h-screen flex flex-col">
+    <header class="bg-blue-600 text-white p-4 shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">Messenger</h1>
+            <div class="flex items-center space-x-4">
+                <span id="user-name" class="font-medium"></span>
+                <a href="profile.html" class="bg-blue-700 hover:bg-blue-800 px-4 py-1 rounded flex items-center">
+                    <i class="fas fa-user mr-2"></i>Profile
+                </a>
+                <button id="logout-btn" class="bg-blue-700 hover:bg-blue-800 px-4 py-1 rounded">Logout</button>
+            </div>
+        </div>
+    </header>
+    
+    <main class="flex-1 container mx-auto flex overflow-hidden">
+        <!-- Sidebar for contacts and friend requests -->
+        <aside class="w-80 bg-white shadow-md flex flex-col h-full">
+            <!-- Tabs for navigating between chats, friends, and requests -->
+            <div class="flex border-b flex-wrap">
+                <button id="chats-tab" class="flex-1 py-3 font-medium text-blue-600 border-b-2 border-blue-600">
+                    <i class="fas fa-comments mr-2"></i>Chats
+                </button>
+                <button id="friends-tab" class="flex-1 py-3 font-medium text-gray-500 hover:text-blue-600">
+                    <i class="fas fa-user-friends mr-2"></i>Friends
+                </button>
+                <button id="requests-tab" class="flex-1 py-3 font-medium text-gray-500 hover:text-blue-600 relative">
+                    <i class="fas fa-user-plus mr-2"></i>Requests
+                    <span id="request-badge" class="hidden absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
+                </button>
+                <button id="browse-tab" class="flex-1 py-3 font-medium text-gray-500 hover:text-blue-600">
+                    <i class="fas fa-users mr-1"></i>Browse
+                </button>
+            </div>
+            
+            <!-- Search bar with improved description -->
+            <div class="p-3 border-b">
+                <div class="relative">
+                    <input type="text" id="search-input" placeholder="Search by username..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <i class="fas fa-search absolute left-4 top-3 text-gray-400"></i>
+                </div>
+                <div class="text-xs text-center mt-1 text-gray-500">
+                    Type at least 3 characters to search for users. Matches anywhere in username.
+                </div>
+            </div>
+            
+            <!-- Tab content -->
+            <div id="chats-content" class="flex-1 overflow-y-auto">
+                <!-- Chat contacts will be populated here -->
+                <div class="p-4 text-center text-gray-500" id="no-chats-message">
+                    No conversations yet. Start chatting with your friends!
+                </div>
+            </div>
+
+            <div id="friends-content" class="flex-1 overflow-y-auto hidden">
+                <!-- Friends list will be populated here -->
+                <div class="p-4 text-center text-gray-500" id="no-friends-message">
+                    No friends yet. Search for users to add them as friends!
+                </div>
+            </div>
+
+            <div id="requests-content" class="flex-1 overflow-y-auto hidden">
+                <!-- Friend requests will be populated here -->
+                <div class="p-4 text-center text-gray-500" id="no-requests-message">
+                    No pending friend requests.
+                </div>
+            </div>
+
+            <div id="browse-content" class="flex-1 overflow-y-auto hidden">
+                <div class="p-4 flex justify-between items-center border-b">
+                    <h3 class="font-bold">All Users</h3>
+                    <div class="flex items-center space-x-2">
+                        <div class="text-sm text-gray-500">
+                            <span id="user-count">0</span> users found
+                        </div>
+                        <button id="refresh-users" class="text-blue-500 hover:text-blue-700 px-2 py-1 rounded hover:bg-blue-50">
+                            <i class="fas fa-sync-alt mr-1"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Filter options -->
+                <div class="px-4 py-2 border-b bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm font-medium text-gray-700">
+                            Filters:
+                        </div>
+                        <div class="flex space-x-2">
+                            <button id="filter-all" class="px-2 py-1 text-xs bg-blue-500 text-white rounded">
+                                All
+                            </button>
+                            <button id="filter-online" class="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded">
+                                Online
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mt-1 text-xs text-gray-500">
+                        Only other users are shown here (not your own account)
+                    </div>
+                </div>
+                
+                <div id="all-users-container" class="overflow-y-auto">
+                    <!-- User list will be populated here -->
+                    <div class="p-4 text-center text-gray-500">Click refresh to load users</div>
+                </div>
+                
+                <div id="loading-users" class="p-4 text-center text-gray-500 hidden">
+                    <i class="fas fa-circle-notch fa-spin mr-2"></i> Loading users...
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Chat area -->
+        <section class="flex-1 flex flex-col ml-4 bg-white shadow-md">
+            <!-- Chat header -->
+            <div id="chat-header" class="p-4 border-b flex items-center">
+                <div id="current-chat-info">
+                    <p class="text-gray-500">Select a conversation to start chatting</p>
+                </div>
+            </div>
+            
+            <!-- Chat messages -->
+            <div id="messages" class="flex-1 p-4 overflow-y-auto flex flex-col space-y-2">
+                <!-- Messages will be displayed here -->
+            </div>
+            
+            <!-- Message input -->
+            <form id="message-form" class="p-4 border-t flex space-x-2">
+                <input 
+                    type="text" 
+                    id="message-input" 
+                    class="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Type your message..."
+                    disabled
+                >
+                <button 
+                    type="submit" 
+                    class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+        </section>
+    </main>
+    
+    <!-- Modal for adding friends -->
+    <div id="add-friend-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold">Search Results</h3>
+                <button id="close-modal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div id="search-results" class="max-h-60 overflow-y-auto my-4">
+                <!-- Search results will be displayed here -->
+            </div>
+            
+            <div id="modal-error" class="mt-4 text-center hidden"></div>
+        </div>
+    </div>
+    
+    <script src="js/chat.js" type="module"></script>
+    <script src="js/friends.js" type="module"></script>
+</body>
+</html>

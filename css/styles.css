@@ -1,0 +1,125 @@
+/* Custom styles for the social media app */
+
+/* User list styles */
+#all-users-container {
+    max-height: calc(100vh - 240px);
+    overflow-y: auto;
+}
+
+.user-item {
+    transition: all 0.2s ease;
+}
+
+.user-item:hover {
+    background-color: #f8fafc;
+}
+
+.user-bio {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Online/offline indicator */
+.status-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.status-online {
+    background-color: #10B981; /* Green */
+    box-shadow: 0 0 4px 1px rgba(16, 185, 129, 0.6);
+}
+
+.status-offline {
+    background-color: #9CA3AF; /* Gray */
+}
+
+/* Tab highlight effect */
+.tab-active {
+    position: relative;
+    font-weight: 600;
+}
+
+.tab-active::after {
+    content: "";
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: currentColor;
+}
+
+/* Message input focus state */
+.message-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+
+/* Animation for loading state */
+.loading-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Button states and loading indicator */
+.button-loading {
+    position: relative;
+    color: transparent !important;
+}
+
+.button-loading::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 16px;
+    height: 16px;
+    margin-left: -8px;
+    margin-top: -8px;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 1s ease-in-out infinite;
+}
+
+/* Profile page styles */
+.profile-picture-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#profile-picture {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+#profile-picture:hover {
+    opacity: 0.9;
+}
+
+#upload-photo-btn {
+    transition: all 0.2s ease;
+}
+
+#upload-photo-btn:hover {
+    background-color: #e5e7eb;
+}
