@@ -18,7 +18,9 @@ import {
 
 // Helper function to create a chat ID from two user IDs
 export function createChatId(userId1, userId2) {
-    return userId1 < userId2 ? `${userId1}_${userId2}` : `${userId2}_${userId1}`;
+    // Sort user IDs to ensure consistent chat IDs
+    const sortedIds = [userId1, userId2].sort();
+    return `${sortedIds[0]}_${sortedIds[1]}`;
 }
 
 /**

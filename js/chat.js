@@ -5,6 +5,7 @@ import {
     push, 
     set, 
     onChildAdded, 
+    onChildRemoved,
     onValue,
     query,
     orderByChild,
@@ -43,6 +44,9 @@ let currentUser = null;
 let username = "";
 let currentChatId = null;
 let currentChatUser = null;
+let userChatsListener = null;
+let currentChatListener = null;
+let userRefListener = null;
 
 // Check authentication state
 onAuthStateChanged(auth, async (user) => {
@@ -141,6 +145,11 @@ onAuthStateChanged(auth, async (user) => {
     } else {
         // Redirect to login if not authenticated
         window.location.href = 'index.html';
+        // Cleanup listeners
+        if (userChatsListener) {
+            userChatsListener();
+            userChatsListener = null;
+        }
     }
 });
 
@@ -215,79 +224,111 @@ if (messageForm) {
 function loadUserChats() {
     if (!currentUser) return;
     
+    // Clean up previous listeners
+    if (userChatsListener) userChatsListener();
+    if (userRefListener) userRefListener();
+
     const userChatsRef = ref(database, `userChats/${currentUser.uid}`);
     
-    onValue(userChatsRef, async (snapshot) => {
-        const chats = snapshot.val();
+    // Use child added/removed listeners instead of value
+    userChatsListener = onChildAdded(userChatsRef, async (snapshot) => {
+        const chatId = snapshot.key;
+        const chatData = snapshot.val();
         
-        if (chatsContent) {
-            chatsContent.innerHTML = '';
+        if (!chatId || !chatsContent) return;
+
+        const otherUserId = chatId.split('_').find(id => id !== currentUser.uid);
+        if (!otherUserId) return;
+
+        try {
+            const userSnapshot = await get(ref(database, `users/${otherUserId}`));
+            const userData = userSnapshot.val();
             
-            if (!chats) {
-                if (noChatsMessage) noChatsMessage.classList.remove('hidden');
-                return;
+            if (userData) {
+                const existingChat = chatsContent.querySelector(`[data-chat-id="${chatId}"]`);
+                if (!existingChat) {
+                    const chatElement = createChatElement(chatId, otherUserId, userData, chatData);
+                    chatsContent.insertBefore(chatElement, chatsContent.firstChild);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading chat:', error);
+        }
+    });
+
+    // Add child removed listener
+    const removeListener = onChildRemoved(userChatsRef, (snapshot) => {
+        const chatId = snapshot.key;
+        const chatElement = chatsContent.querySelector(`[data-chat-id="${chatId}"]`);
+        if (chatElement) {
+            chatElement.remove();
+        }
+    });
+
+    // Store both listeners
+    userChatsListener = [userChatsListener, removeListener];
+
+    // Update user reference listener
+    const userRef = ref(database, 'users/' + currentUser.uid);
+    userRefListener = onValue(userRef, async (snapshot) => {
+        const userData = snapshot.val();
+        
+        if (userData && userData.username) {
+            // Only update username if we don't have a guarded one yet
+            if (!username) {
+                console.log("Using username from database:", userData.username);
+                username = userData.username;
+                
+                // Update UI
+                if (userNameSpan) {
+                    userNameSpan.textContent = username;
+                }
             }
             
-            if (noChatsMessage) noChatsMessage.classList.add('hidden');
+            // Always update online status
+            await set(ref(database, `users/${currentUser.uid}/status`), "online");
+        } else {
+            console.warn("User data missing or invalid username:", userData);
             
-            // Convert to array and sort by timestamp
-            const chatArray = Object.entries(chats).map(([chatId, chatData]) => ({
-                id: chatId,
-                ...chatData
-            }));
-            
-            chatArray.sort((a, b) => {
-                const timestampA = a.timestamp ? 
-                    (typeof a.timestamp === 'object' ? a.timestamp.seconds * 1000 : a.timestamp) : 0;
-                const timestampB = b.timestamp ? 
-                    (typeof b.timestamp === 'object' ? b.timestamp.seconds * 1000 : b.timestamp) : 0;
-                return timestampB - timestampA;
-            });
-            
-            // Display each chat in sidebar
-            for (const chat of chatArray) {
-                const chatId = chat.id;
-                const otherUserId = chatId.split('_').find(id => id !== currentUser.uid);
+            // If we already have a username from the guard, use that
+            if (username) {
+                console.log("Using existing username:", username);
                 
-                if (!otherUserId) continue;
-                
+                // Ensure it's saved in the database
                 try {
-                    // Get other user's data
-                    const userSnapshot = await get(ref(database, `users/${otherUserId}`));
-                    const userData = userSnapshot.val();
+                    const profileUpdate = {
+                        username: username,
+                        status: "online",
+                    };
                     
-                    if (userData) {
-                        // Create chat contact element
-                        const chatElement = document.createElement('div');
-                        chatElement.className = `p-3 hover:bg-gray-100 cursor-pointer flex items-center border-b ${
-                            chat.unread ? 'bg-blue-50' : ''
-                        }`;
-                        chatElement.dataset.chatId = chatId;
-                        chatElement.dataset.userId = otherUserId;
-                        chatElement.dataset.username = userData.username;
-                        
-                        const statusClass = userData.status === "online" ? "bg-green-500" : "bg-gray-300";
-                        
-                        chatElement.innerHTML = `
-                            <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center mr-3">
-                                <span>${userData.username.charAt(0).toUpperCase()}</span>
-                            </div>
-                            <div class="flex-1">
-                                <div class="flex justify-between">
-                                    <h3 class="font-medium">${userData.username}</h3>
-                                    <span class="text-xs text-gray-500">${formatMessageTime(chat.timestamp)}</span>
-                                </div>
-                                <p class="text-sm text-gray-500 truncate">${chat.lastMessage || 'Start a conversation'}</p>
-                            </div>
-                            <div class="ml-2 w-3 h-3 rounded-full ${statusClass}"></div>
-                        `;
-                        
-                        chatElement.addEventListener('click', () => openChat(chatId, otherUserId, userData.username));
-                        
-                        chatsContent.appendChild(chatElement);
+                    if (!userData || !userData.created_at) {
+                        profileUpdate.created_at = serverTimestamp();
                     }
-                } catch (error) {
-                    console.error('Error loading chat:', error);
+                    
+                    await update(ref(database, `users/${currentUser.uid}`), profileUpdate);
+                } catch (updateError) {
+                    console.error("Error updating profile:", updateError);
+                }
+            } else {
+                // Fallback to displayName or email
+                username = currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'User');
+                console.log("Fallback to username:", username);
+                
+                // Create default profile
+                try {
+                    await update(ref(database, `users/${currentUser.uid}`), {
+                        username: username,
+                        email: currentUser.email || '',
+                        status: "online",
+                        created_at: serverTimestamp()
+                    });
+                    
+                    // Update UI
+                    if (userNameSpan) {
+                        userNameSpan.textContent = username;
+                    }
+                } catch (err) {
+                    console.error("Error creating default profile:", err);
                 }
             }
         }
@@ -301,6 +342,12 @@ function openChat(chatId, userId, userName) {
         return;
     }
     
+    // Remove existing click listeners
+    const existingButtons = chatsContent.querySelectorAll(`[data-chat-id="${chatId}"]`);
+    existingButtons.forEach(btn => {
+        btn.replaceWith(btn.cloneNode(true));
+    });
+
     // Mark current chat button as selected
     const chatButtons = chatsContent.querySelectorAll('div[data-chat-id]');
     chatButtons.forEach(btn => {
@@ -347,6 +394,12 @@ function openChat(chatId, userId, userName) {
         
         // Mark messages as read
         set(ref(database, `userChats/${currentUser.uid}/${chatId}/unread`), false);
+    }
+
+    // Update new button click listener
+    const newButton = chatsContent.querySelector(`[data-chat-id="${chatId}"]`);
+    if (newButton) {
+        newButton.addEventListener('click', () => openChat(chatId, userId, userName));
     }
 }
 
@@ -558,10 +611,17 @@ if (searchInput) {
 
 // Cleanup function to remove event listeners and references
 function cleanup() {
-    // Remove chat listeners
-    if (window.currentChatListener) {
-        window.currentChatListener();
-        window.currentChatListener = null;
+    if (currentChatListener) {
+        currentChatListener();
+        currentChatListener = null;
+    }
+    if (userChatsListener) {
+        userChatsListener();
+        userChatsListener = null;
+    }
+    if (userRefListener) {
+        userRefListener();
+        userRefListener = null;
     }
 }
 
@@ -584,3 +644,38 @@ window.addEventListener('beforeunload', async () => {
 });
 
 export { currentUser, username, openChat };
+
+// Add this helper function to create chat elements
+function createChatElement(chatId, userId, userData, chat) {
+    const existingElement = chatsContent.querySelector(`[data-chat-id="${chatId}"]`);
+    if (existingElement) return existingElement.cloneNode(true);
+
+    const chatElement = document.createElement('div');
+    chatElement.className = `p-3 hover:bg-gray-100 cursor-pointer flex items-center border-b`;
+    chatElement.dataset.chatId = chatId;
+    chatElement.dataset.userId = userId;
+    chatElement.dataset.username = userData.username;
+
+    const statusClass = userData.status === "online" ? "bg-green-500" : "bg-gray-300";
+    
+    // Use chat data for timestamp and last message
+    const lastMessageTime = formatMessageTime(chat?.timestamp);
+    const lastMessageText = chat?.lastMessage || 'Start a conversation';
+    
+    chatElement.innerHTML = `
+        <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center mr-3">
+            <span>${userData.username.charAt(0).toUpperCase()}</span>
+        </div>
+        <div class="flex-1">
+            <div class="flex justify-between">
+                <h3 class="font-medium">${userData.username}</h3>
+                <span class="text-xs text-gray-500">${lastMessageTime}</span>
+            </div>
+            <p class="text-sm text-gray-500 truncate">${lastMessageText}</p>
+        </div>
+        <div class="ml-2 w-3 h-3 rounded-full ${statusClass}"></div>
+    `;
+
+    chatElement.addEventListener('click', () => openChat(chatId, userId, userData.username));
+    return chatElement;
+}
