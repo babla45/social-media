@@ -125,10 +125,45 @@ export function getUserInitial(username) {
     return username.charAt(0).toUpperCase();
 }
 
+/**
+ * Check if a user is the current logged-in user
+ * @param {Object|string} user - User object or user ID
+ * @returns {boolean} - True if it's the current user
+ */
+export function isCurrentUser(user) {
+    if (!auth.currentUser) return false;
+    
+    // If user is a string, assume it's a user ID
+    if (typeof user === 'string') {
+        return auth.currentUser.uid === user;
+    }
+    
+    // If user is an object
+    if (user && typeof user === 'object') {
+        // Check by ID
+        if (user.id && user.id === auth.currentUser.uid) {
+            return true;
+        }
+        
+        // Check by email
+        if (user.email && user.email === auth.currentUser.email) {
+            return true;
+        }
+        
+        // Check if username is "You" (special case)
+        if (user.username === "You") {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
 export default {
     setButtonLoading,
     setFriendButtonState,
     debounce,
     formatRelativeTime,
-    getUserInitial
+    getUserInitial,
+    isCurrentUser
 };

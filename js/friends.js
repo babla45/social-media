@@ -679,6 +679,10 @@ async function loadAllUsers(forceRefresh = false) {
         try {
             // Get current user's ID for filtering
             const currentUserId = auth.currentUser.uid;
+            const currentUserEmail = auth.currentUser.email;
+            
+            console.log("Current user ID to filter out:", currentUserId);
+            console.log("Current user email:", currentUserEmail);
             
             // Get all users - Use direct database ref
             const usersRef = ref(database, 'users');
@@ -693,19 +697,40 @@ async function loadAllUsers(forceRefresh = false) {
             // Clear previous content if not already cleared
             allUsersContainer.innerHTML = '';
             
+            // Store users in array for filtering and sorting
             const users = [];
+            
+            // Process each user from the database snapshot
             snapshot.forEach((childSnapshot) => {
                 const userData = childSnapshot.val();
                 const userId = childSnapshot.key;
                 
-                // Explicitly check and filter out the current user
-                if (userId !== currentUserId) {
-                    users.push({
-                        id: userId,
-                        ...userData
-                    });
+                // Skip the current user with strict comparison
+                if (userId === currentUserId) {
+                    console.log("Skipping current user by ID:", userId);
+                    return;
                 }
+                
+                // Also skip if the email matches (additional safety)
+                if (userData.email && userData.email === currentUserEmail) {
+                    console.log("Skipping current user by email:", userData.email);
+                    return;
+                }
+                
+                // Skip users with missing or invalid data
+                if (!userData.username) {
+                    console.log("Skipping user with missing username:", userId);
+                    return;
+                }
+                
+                // Add valid users to the array
+                users.push({
+                    id: userId,
+                    ...userData
+                });
             });
+            
+            console.log(`Found ${users.length} users (excluding current user)`);
             
             // Update user count display
             if (userCountDisplay) {
@@ -726,14 +751,20 @@ async function loadAllUsers(forceRefresh = false) {
                 return;
             }
             
-            // Display users
+            // Display users, with multiple safety checks to ensure current user is not shown
             for (const user of users) {
-                // Double check to ensure it's not the current user
-                if (user.id === currentUserId) continue;
+                // Triple check to ensure it's not the current user
+                if (user.id === currentUserId || 
+                    (user.email && user.email === currentUserEmail) || 
+                    user.username === 'You') {
+                    console.log("Skipping current user in display loop:", user.id);
+                    continue;
+                }
                 
                 const userElement = document.createElement('div');
                 userElement.className = 'p-3 border-b flex items-center justify-between hover:bg-gray-50';
                 userElement.classList.add('user-item'); // Add a class for easy selection
+                userElement.dataset.userId = user.id; // Add user ID as data attribute for easy filtering
                 
                 // User info (avatar + name)
                 const userInfo = document.createElement('div');
@@ -746,7 +777,8 @@ async function loadAllUsers(forceRefresh = false) {
                     avatar.innerHTML = `<img src="${user.profile_picture}" alt="${user.username}" class="w-full h-full object-cover">`;
                 } else {
                     avatar.className = 'w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center mr-3';
-                    avatar.innerHTML = `<span>${user.username ? user.username.charAt(0).toUpperCase() : '?'}</span>`;
+                    const initial = user.username.charAt(0).toUpperCase();
+                    avatar.innerHTML = `<span>${initial}</span>`;
                 }
                 
                 // User details container
@@ -755,7 +787,7 @@ async function loadAllUsers(forceRefresh = false) {
                 // Username
                 const nameElement = document.createElement('div');
                 nameElement.className = 'font-medium';
-                nameElement.textContent = user.username || 'Unknown User';
+                nameElement.textContent = user.username; // Display actual username
                 
                 // Status indicator
                 const statusElement = document.createElement('div');
@@ -767,17 +799,15 @@ async function loadAllUsers(forceRefresh = false) {
                 statusElement.appendChild(statusDot);
                 statusElement.appendChild(document.createTextNode(user.status === 'online' ? 'Online' : 'Offline'));
                 
+                nameContainer.appendChild(nameElement);
+                nameContainer.appendChild(statusElement);
+                
                 // Bio (if available)
                 if (user.bio) {
                     const bioElement = document.createElement('div');
                     bioElement.className = 'text-xs text-gray-500 mt-1 truncate max-w-[180px]';
                     bioElement.textContent = user.bio;
-                    nameContainer.appendChild(nameElement);
-                    nameContainer.appendChild(statusElement);
                     nameContainer.appendChild(bioElement);
-                } else {
-                    nameContainer.appendChild(nameElement);
-                    nameContainer.appendChild(statusElement);
                 }
                 
                 userInfo.appendChild(avatar);
@@ -834,6 +864,16 @@ async function loadAllUsers(forceRefresh = false) {
             // Hide loading state
             if (loadingUsers) {
                 loadingUsers.classList.add('hidden');
+            }
+            
+            // Final verification - remove any elements that might be the current user
+            const currentUserElements = allUsersContainer.querySelectorAll(`[data-user-id="${auth.currentUser.uid}"]`);
+            currentUserElements.forEach(el => el.remove());
+            
+            // Verify user count is correct
+            const actualUserCount = allUsersContainer.querySelectorAll('.user-item').length;
+            if (userCountDisplay) {
+                userCountDisplay.textContent = actualUserCount.toString();
             }
         }
     }

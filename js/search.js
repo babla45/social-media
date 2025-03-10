@@ -5,7 +5,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 
 /**
- * Search for users by username - using subsequence matching
+ * Search for users by username - using subsequence matching with strict current user filtering
  * @param {string} searchTerm - The search term
  * @param {boolean} excludeCurrentUser - Whether to exclude the current user (default true)
  * @returns {Promise<Array>} - Array of user objects
@@ -15,9 +15,15 @@ export async function searchUsers(searchTerm, excludeCurrentUser = true) {
         if (!searchTerm || searchTerm.length < 2) {
             return [];
         }
+        
+        if (!auth.currentUser && excludeCurrentUser) {
+            console.warn("No authenticated user found, but trying to exclude current user");
+            return [];
+        }
 
-        // Get current user ID for filtering
+        // Get current user ID and email for multiple checks
         const currentUserId = auth.currentUser ? auth.currentUser.uid : null;
+        const currentUserEmail = auth.currentUser ? auth.currentUser.email : null;
         
         // Normalize search term
         const query = searchTerm.toLowerCase().trim();
@@ -35,13 +41,31 @@ export async function searchUsers(searchTerm, excludeCurrentUser = true) {
             const userData = childSnapshot.val();
             const userId = childSnapshot.key;
             
-            // Skip the current user if excludeCurrentUser is true
-            if (excludeCurrentUser && userId === currentUserId) {
+            // Multiple checks to ensure we're not including the current user
+            if (excludeCurrentUser) {
+                if (userId === currentUserId) {
+                    console.log("Search: Excluded current user by ID:", userId);
+                    return;
+                }
+                
+                if (userData.email && userData.email === currentUserEmail) {
+                    console.log("Search: Excluded current user by email:", userData.email);
+                    return;
+                }
+                
+                // Skip users with username "You" as a safety measure
+                if (userData.username === "You") {
+                    return;
+                }
+            }
+            
+            // Skip users with missing username
+            if (!userData.username) {
                 return;
             }
             
             // Check if username contains the search term (subsequence)
-            const username = userData.username?.toLowerCase() || '';
+            const username = userData.username.toLowerCase();
             if (username.includes(query)) {
                 users.push({
                     id: userId,
