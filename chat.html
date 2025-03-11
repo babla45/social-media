@@ -26,23 +26,23 @@
         </div>
     </header>
     
-    <main class="flex-1 container mx-auto flex overflow-hidden">
+    <main class="flex-1 w-[98vw] max-w-full mx-auto mt-2 flex overflow-hidden">
         <!-- Sidebar for contacts and friend requests -->
-        <aside class="w-90 bg-white shadow-md flex flex-col h-full">
+        <aside class="w-80 max-w-[98%] px-3  bg-white shadow-md flex flex-col h-full">
             <!-- Tabs for navigating between chats, friends, and requests -->
             <div class="flex border-b flex-wrap">
-                <button id="chats-tab" class="flex-1 py-3 font-medium text-blue-600 border-b-2 border-blue-600">
-                    <i class="fas fa-comments mr-2"></i>Chats
+                <button id="chats-tab" class="flex-1 py-2 text-sm font-medium text-blue-600 border-b-2 border-blue-600">
+                    <i class="fas fa-comments mr-2 text-xs"></i>Chats
                 </button>
-                <button id="friends-tab" class="flex-1 py-3 font-medium text-gray-500 hover:text-blue-600">
-                    <i class="fas fa-user-friends mr-2"></i>Friends
+                <button id="friends-tab" class="flex-1 py-2 text-sm font-medium text-gray-500 hover:text-blue-600">
+                    <i class="fas fa-user-friends mr-2 text-xs"></i>Friends
                 </button>
-                <button id="requests-tab" class="flex-1 py-3 font-medium text-gray-500 hover:text-blue-600 relative">
-                    <i class="fas fa-user-plus mr-2"></i>Requests
-                    <span id="request-badge" class="hidden absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
+                <button id="requests-tab" class="flex-1 py-2 text-sm font-medium text-gray-500 hover:text-blue-600 relative">
+                    <i class="fas fa-user-plus mr-2 text-xs"></i>Request
+                    <span id="request-badge" class="hidden absolute top-0 right-0 bg-red-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center">0</span>
                 </button>
-                <button id="browse-tab" class="flex-1 py-3 font-medium text-gray-500 hover:text-blue-600">
-                    <i class="fas fa-users mr-1"></i>Browse
+                <button id="browse-tab" class="flex-1 py-2 text-sm font-medium text-gray-500 hover:text-blue-600">
+                    <i class="fas fa-users mr-1 text-xs"></i>Browse
                 </button>
             </div>
             
@@ -124,16 +124,16 @@
         </aside>
         
         <!-- Chat area -->
-        <section class="flex-1 flex flex-col ml-4 bg-white shadow-md">
+        <section class="flex-1 flex flex-col bg-white shadow-md ml-2 min-w-0">
             <!-- Chat header -->
-            <div id="chat-header" class="p-4 border-b flex items-center">
-                <div id="current-chat-info">
+            <div id="chat-header" class="p-2 border-b flex items-center">
+                <div id="current-chat-info" class="w-full">
                     <p class="text-gray-500">Select a conversation to start chatting</p>
                 </div>
             </div>
             
             <!-- Chat messages -->
-            <div id="messages" class="flex-1 p-4 overflow-y-auto flex flex-col space-y-2">
+            <div id="messages" class="flex-1 overflow-y-auto p-4 flex flex-col space-y-2">
                 <!-- Messages will be displayed here -->
             </div>
             

@@ -385,12 +385,10 @@ function openChat(chatId, userId, userName) {
     if (chatHeader) {
         chatHeader.innerHTML = `
             <div class="flex items-center">
-                <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center mr-3">
-                    <span>${userName.charAt(0).toUpperCase()}</span>
+                <div class="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center mr-2">
+                    <span>${currentChatUser.name.charAt(0).toUpperCase()}</span>
                 </div>
-                <div>
-                    <h3 class="font-medium">${userName}</h3>
-                </div>
+                <h3 class="font-medium text-lg">${currentChatUser.name}</h3>
             </div>
         `;
     }
