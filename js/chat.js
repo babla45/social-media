@@ -364,9 +364,9 @@ function loadUserChats() {
 }
 
 // Open a chat with a user
-function openChat(chatId, userId, userName) {
-    if (!chatId || !userId || !userName) {
-        console.error('Missing parameters for openChat', { chatId, userId, userName });
+function openChat(chatId, userId, username) {
+    if (!chatId || !userId || !username) {
+        console.error('Missing parameters for openChat', { chatId, userId, username });
         return;
     }
     
@@ -391,7 +391,7 @@ function openChat(chatId, userId, userName) {
     currentChatId = chatId;
     currentChatUser = {
         id: userId,
-        name: userName
+        name: username
     };
 
     // Show close button
@@ -446,8 +446,25 @@ function openChat(chatId, userId, userName) {
     // Update new button click listener
     const newButton = chatsContent.querySelector(`[data-chat-id="${chatId}"]`);
     if (newButton) {
-        newButton.addEventListener('click', () => openChat(chatId, userId, userName));
+        newButton.addEventListener('click', () => openChat(chatId, userId, username));
     }
+
+    // Scroll to bottom and focus input
+    setTimeout(() => {
+        const messagesContainer = document.getElementById('messages');
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        const messageInput = document.getElementById('message-input');
+        messageInput.removeAttribute('disabled');
+        messageInput.focus();
+        
+        // Mobile-specific behavior
+        if (window.innerWidth <= 768) {
+            messageInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            document.documentElement.style.height = '100vh';
+            document.body.style.height = '100vh';
+        }
+    }, 100);
 }
 
 // Load messages for a specific chat
@@ -478,6 +495,7 @@ function loadChatMessages(chatId) {
     window.currentChatListener = newListener;
 }
 
+
 // Display a message in the UI
 function displayMessage(message) {
     if (!messagesDiv) return;
@@ -486,8 +504,8 @@ function displayMessage(message) {
     const isOwnMessage = message.sender === currentUser.uid;
     
     messageElement.className = isOwnMessage 
-        ? 'self-end bg-blue-500 text-white p-3 rounded-lg max-w-xs mb-2'
-        : 'self-start bg-gray-200 p-3 rounded-lg max-w-xs mb-2';
+        ? 'self-end bg-blue-500 text-white p-3 rounded-[12px] min-w-[27vw] max-w-[70vw] mb-2'
+        : 'self-start bg-gray-200 p-3 rounded-lg min-w-[27vw] max-w-[70vw] mb-2';
     
     const nameElement = document.createElement('div');
     nameElement.className = 'font-bold text-sm mb-1';
@@ -497,7 +515,7 @@ function displayMessage(message) {
     textElement.textContent = message.text;
     
     const timeElement = document.createElement('div');
-    timeElement.className = isOwnMessage ? 'text-xs text-blue-200 text-right mt-1' : 'text-xs text-gray-500 mt-1';
+    timeElement.className = isOwnMessage ? 'text-xs text-blue-200 min-w-[27vw] text-right mt-1' : 'text-xs min-w-[27vw] text-gray-500 mt-1';
     timeElement.textContent = formatMessageTime(message.timestamp);
     
     messageElement.appendChild(nameElement);
@@ -699,30 +717,31 @@ export { currentUser, username, openChat };
 // Add this helper function to create chat elements
 function createChatElement(chatId, userId, userData, chat) {
     const chatElement = document.createElement('div');
-    chatElement.className = `p-3 hover:bg-gray-100 cursor-pointer flex items-center border-b`;
+    chatElement.className = `p-2 mt-1 hover:bg-gray-200 bg-gray-100 rounded-lg cursor-pointer flex items-center border-b`;
     chatElement.dataset.chatId = chatId;
     chatElement.dataset.userId = userId;
     chatElement.dataset.username = userData.username;
 
-    const statusClass = userData.status === "online" ? "bg-green-500" : "bg-gray-300";
+    const statusClass = userData.status === "online" ? "bg-green-500" : "bg-gray-400";
     
     // Use chat data for timestamp and last message
     const lastMessageTime = formatMessageTime(chat?.timestamp);
     const lastMessageText = chat?.lastMessage || 'Start a conversation';
     
     chatElement.innerHTML = `
-        <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center mr-3">
+        <div class="w-10 h-10 rounded-full  bg-gray-300 flex items-center justify-center mr-3">
             <span>${userData.username.charAt(0).toUpperCase()}</span>
         </div>
         <div class="flex-1">
             <div class="flex justify-between">
                 <h3 class="font-medium">${userData.username}</h3>
-                <span class="text-xs text-gray-500">${lastMessageTime}</span>
+                <span class="text-xs text-gray-500">Last message at: ${lastMessageTime}</span>
             </div>
-            <p class="text-sm text-gray-500 truncate">${lastMessageText}</p>
         </div>
         <div class="ml-2 w-3 h-3 rounded-full ${statusClass}"></div>
     `;
+    // <p class="text-sm text-gray-500 truncate">${lastMessageText}</p>
+    //last message removed
 
     chatElement.addEventListener('click', () => openChat(chatId, userId, userData.username));
     return chatElement;
