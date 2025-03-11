@@ -284,3 +284,18 @@
         margin-left: 0 !important;
     }
 }
+
+@media (min-width: 768px) {
+    #messages {
+        height: calc(100vh - 200px) !important; /* Adjust based on header height */
+        padding-bottom: 80px; /* Space for input box */
+    }
+    
+    #message-form {
+        position: sticky;
+        bottom: 0;
+        background: white;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
+}

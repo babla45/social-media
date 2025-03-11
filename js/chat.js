@@ -183,6 +183,9 @@ if (messageForm) {
         const messageText = messageInput.value.trim();
         if (!messageText) return;
         
+        // Clear input immediately
+        messageInput.value = '';
+        
         try {
             const messagesRef = ref(database, `chats/${currentChatId}/messages`);
             const newMessageRef = push(messagesRef);
@@ -211,11 +214,9 @@ if (messageForm) {
                 });
             }
             
-            // Clear the input after sending
-            messageInput.value = '';
-            
         } catch (error) {
             console.error('Error sending message:', error);
+            // Optionally restore message if needed
         }
     });
 }
