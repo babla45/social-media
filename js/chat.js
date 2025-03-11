@@ -380,18 +380,39 @@ function openChat(chatId, userId, userName) {
         id: userId,
         name: userName
     };
+
+    // Show close button
+    const closeButton = document.getElementById('close-chat');
+    if (closeButton) {
+        closeButton.classList.remove('hidden');
+    }
     
     // Update chat header
     if (chatHeader) {
         chatHeader.innerHTML = `
-            <div class="flex items-center">
-                <div class="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center mr-2">
-                    <span>${currentChatUser.name.charAt(0).toUpperCase()}</span>
+            <div class="flex items-center justify-between w-full">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center mr-2">
+                        <span>${currentChatUser.name.charAt(0).toUpperCase()}</span>
+                    </div>
+                    <h3 class="font-medium text-lg">${currentChatUser.name}</h3>
                 </div>
-                <h3 class="font-medium text-lg">${currentChatUser.name}</h3>
+                <button id="close-chat" class="ml-2 text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
         `;
+        
+        // Add close chat handler
+        const closeButton = chatHeader.querySelector('#close-chat');
+        if (closeButton) {
+            closeButton.addEventListener('click', closeActiveChat);
+        }
     }
+    
+    // Hide the sidebar
+    const sidebar = document.querySelector('aside');
+    if (sidebar) sidebar.classList.add('hidden');
     
     // Clear messages area
     if (messagesDiv) {
@@ -524,6 +545,10 @@ function setupTabNavigation() {
         if (browseContent) {
             browseContent.classList.add('hidden');
         }
+
+        // Show the sidebar when chats tab is clicked
+        const sidebar = document.querySelector('aside');
+        if (sidebar) sidebar.classList.remove('hidden');
     });
     
     friendsTab.addEventListener('click', () => {
@@ -688,4 +713,46 @@ function createChatElement(chatId, userId, userData, chat) {
 
     chatElement.addEventListener('click', () => openChat(chatId, userId, userData.username));
     return chatElement;
+}
+
+// Add new closeActiveChat function
+function closeActiveChat() {
+    // Show sidebar
+    const sidebar = document.querySelector('aside');
+    if (sidebar) sidebar.classList.remove('hidden');
+    
+    // Clear current chat
+    currentChatId = null;
+    currentChatUser = null;
+    
+    // Disable message input
+    if (messageInput) {
+        messageInput.disabled = true;
+    }
+    
+    // Clear messages
+    if (messagesDiv) {
+        messagesDiv.innerHTML = '';
+    }
+    
+    // Reset chat header
+    if (chatHeader) {
+        chatHeader.innerHTML = `
+            <div class="w-full">
+                <p class="text-gray-500">Select a conversation to start chatting</p>
+            </div>
+        `;
+    }
+    
+    // Remove active state from chat buttons
+    const chatButtons = chatsContent.querySelectorAll('div[data-chat-id]');
+    chatButtons.forEach(btn => {
+        btn.classList.remove('bg-blue-100');
+    });
+    
+    // Cleanup chat listener
+    if (currentChatListener) {
+        currentChatListener();
+        currentChatListener = null;
+    }
 }
