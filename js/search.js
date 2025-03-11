@@ -12,7 +12,7 @@ import {
  */
 export async function searchUsers(searchTerm, excludeCurrentUser = true) {
     try {
-        if (!searchTerm || searchTerm.length < 2) {
+        if (!searchTerm || searchTerm.trim().length < 2) {
             return [];
         }
         

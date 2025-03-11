@@ -145,10 +145,12 @@ document.addEventListener('DOMContentLoaded', () => {
 function handleSearch() {
     const query = searchInput.value.trim();
     
-    if (query.length < 3) {
+    if (query.length < 2) {
         if (addFriendModal.classList.contains('hidden') === false) {
             addFriendModal.classList.add('hidden');
         }
+        modalError.textContent = 'Please enter at least 2 characters';
+        modalError.classList.remove('hidden');
         return;
     }
     
