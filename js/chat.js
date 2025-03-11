@@ -403,14 +403,15 @@ function openChat(chatId, userId, username) {
     // Update chat header
     if (chatHeader) {
         chatHeader.innerHTML = `
-            <div class="flex items-center justify-between w-full">
+            <div class="flex items-center bg-gray-100 p-2 rounded-lg justify-between w-full">
                 <div class="flex items-center">
                     <div class="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center mr-2">
                         <span>${currentChatUser.name.charAt(0).toUpperCase()}</span>
                     </div>
                     <h3 class="font-medium text-lg">${currentChatUser.name}</h3>
                 </div>
-                <button id="close-chat" class="ml-2 text-gray-500 hover:text-gray-700">
+                <button id="close-chat" class="ml-2 text-gray-800 hover:text-green-700">
+                    Close Chat
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -427,9 +428,9 @@ function openChat(chatId, userId, username) {
     const sidebar = document.querySelector('aside');
     if (sidebar) sidebar.classList.add('hidden');
     
-    // Clear messages area
+    // Clear messages area and show loading
     if (messagesDiv) {
-        messagesDiv.innerHTML = '';
+        messagesDiv.innerHTML = '<div class="loading-messages text-center p-4"><i class="fas fa-circle-notch fa-spin text-blue-500"></i><p class="text-gray-600 mt-2">Loading messages...</p></div>';
         
         // Enable message input
         if (messageInput) {
@@ -475,14 +476,10 @@ function loadChatMessages(chatId) {
         limitToLast(100)
     );
     
-    // Clear previous listeners
-    const previousListener = window.currentChatListener;
-    if (previousListener) {
-        previousListener();
-    }
-    
-    // Add new listener
-    const newListener = onChildAdded(messagesRef, (snapshot) => {
+    // Hide loading when messages arrive
+    const loadingIndicator = document.getElementById('messages-loading');
+    const messageListener = onChildAdded(messagesRef, (snapshot) => {
+        if (loadingIndicator) loadingIndicator.classList.add('hidden');
         const message = snapshot.val();
         displayMessage(message);
         
@@ -491,14 +488,23 @@ function loadChatMessages(chatId) {
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
     });
-    
-    window.currentChatListener = newListener;
-}
 
+    // Handle case with no messages
+    get(messagesRef).then(snapshot => {
+        if (!snapshot.exists() && loadingIndicator) {
+            loadingIndicator.classList.add('hidden');
+        }
+    });
+}
 
 // Display a message in the UI
 function displayMessage(message) {
     if (!messagesDiv) return;
+    
+    const loadingElement = messagesDiv.querySelector('.loading-messages');
+    if (loadingElement) {
+        loadingElement.remove();
+    }
     
     const messageElement = document.createElement('div');
     const isOwnMessage = message.sender === currentUser.uid;

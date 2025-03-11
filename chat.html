@@ -136,7 +136,11 @@
             
             <!-- Chat messages -->
             <div id="messages" class="flex-1 overflow-y-auto p-4 flex flex-col space-y-2">
-                <!-- Messages will be displayed here -->
+                <!-- Loading indicator -->
+                <div id="messages-loading" class="hidden text-center p-4">
+                    <i class="fas fa-circle-notch fa-spin text-blue-500"></i>
+                    <p class="text-gray-600 mt-2">Loading messages...</p>
+                </div>
             </div>
             
             <!-- Message input -->
