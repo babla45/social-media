@@ -230,8 +230,18 @@ function loadUserChats() {
 
     const userChatsRef = ref(database, `userChats/${currentUser.uid}`);
     
-    // Use child added/removed listeners instead of value
-    userChatsListener = onChildAdded(userChatsRef, async (snapshot) => {
+    // Use value listener to get initial data and then child added/removed
+    userChatsListener = onValue(userChatsRef, (snapshot) => {
+        const chats = snapshot.val();
+        if (chats && Object.keys(chats).length > 0) {
+            noChatsMessage.classList.add('hidden');
+        } else {
+            noChatsMessage.classList.remove('hidden');
+        }
+    });
+
+    // Child added listener
+    const addedListener = onChildAdded(userChatsRef, async (snapshot) => {
         const chatId = snapshot.key;
         const chatData = snapshot.val();
         
@@ -249,6 +259,7 @@ function loadUserChats() {
                 if (!existingChat) {
                     const chatElement = createChatElement(chatId, otherUserId, userData, chatData);
                     chatsContent.insertBefore(chatElement, chatsContent.firstChild);
+                    noChatsMessage.classList.add('hidden');
                 }
             }
         } catch (error) {
@@ -256,17 +267,21 @@ function loadUserChats() {
         }
     });
 
-    // Add child removed listener
-    const removeListener = onChildRemoved(userChatsRef, (snapshot) => {
+    // Child removed listener
+    const removedListener = onChildRemoved(userChatsRef, (snapshot) => {
         const chatId = snapshot.key;
         const chatElement = chatsContent.querySelector(`[data-chat-id="${chatId}"]`);
         if (chatElement) {
             chatElement.remove();
+            // Show no chats message if no chats left
+            if (chatsContent.children.length === 1) { // 1 is the noChatsMessage div
+                noChatsMessage.classList.remove('hidden');
+            }
         }
     });
 
-    // Store both listeners
-    userChatsListener = [userChatsListener, removeListener];
+    // Store all listeners
+    userChatsListener = [userChatsListener, addedListener, removedListener];
 
     // Update user reference listener
     const userRef = ref(database, 'users/' + currentUser.uid);
@@ -647,9 +662,6 @@ export { currentUser, username, openChat };
 
 // Add this helper function to create chat elements
 function createChatElement(chatId, userId, userData, chat) {
-    const existingElement = chatsContent.querySelector(`[data-chat-id="${chatId}"]`);
-    if (existingElement) return existingElement.cloneNode(true);
-
     const chatElement = document.createElement('div');
     chatElement.className = `p-3 hover:bg-gray-100 cursor-pointer flex items-center border-b`;
     chatElement.dataset.chatId = chatId;

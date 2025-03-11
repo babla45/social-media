@@ -11,13 +11,17 @@
 <body class="bg-gray-100 min-h-screen">
     <header class="bg-blue-600 text-white p-4 shadow-md">
         <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-2xl font-bold">Messenger</h1>
+            <div class="flex items-center space-x-4">
+                <a href="chat.html" class="bg-blue-700 hover:bg-blue-800 px-4 py-1 rounded flex items-center">
+                    <i class="fas fa-home mr-2"></i>Home
+                </a>
+                <h1 class="text-2xl font-bold">Messenger</h1>
+            </div>
             <div class="flex items-center space-x-4">
                 <span id="user-name" class="font-medium"></span>
                 <a href="chat.html" class="bg-blue-700 hover:bg-blue-800 px-4 py-1 rounded flex items-center">
                     <i class="fas fa-comments mr-2"></i>Messages
                 </a>
-                <button id="logout-btn" class="bg-blue-700 hover:bg-blue-800 px-4 py-1 rounded">Logout</button>
             </div>
         </div>
     </header>
@@ -78,6 +82,10 @@
                     
                     <button id="delete-account-btn" class="flex items-center text-red-600 hover:text-red-800">
                         <i class="fas fa-trash-alt mr-2"></i> Delete Account
+                    </button>
+                    
+                    <button id="logout-btn" class="flex items-center text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-sign-out-alt mr-2"></i> Logout
                     </button>
                 </div>
             </div>

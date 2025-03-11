@@ -4,20 +4,22 @@ import {
     updatePassword,
     reauthenticateWithCredential,
     EmailAuthProvider,
-    deleteUser 
+    deleteUser,
+    signOut
 } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
 import { 
     ref as dbRef, 
     get, 
     update, 
     remove,
-    serverTimestamp 
+    serverTimestamp,
+    set
 } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 import { 
     ref as storageRef,
     uploadBytes,
     getDownloadURL,
-    deleteObject 
+    deleteObject
 } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-storage.js";
 
 // DOM Elements
@@ -51,6 +53,9 @@ const deleteError = document.getElementById('delete-error');
 
 // Close modal buttons
 const closeModalButtons = document.querySelectorAll('.close-modal');
+
+// Add this in the Event Listeners section
+const logoutBtn = document.getElementById('logout-btn');
 
 let currentUser = null;
 let userProfileData = {};
@@ -468,6 +473,36 @@ if (closeModalButtons) {
             if (changePasswordModal) changePasswordModal.classList.add('hidden');
             if (deleteAccountModal) deleteAccountModal.classList.add('hidden');
         });
+    });
+}
+
+// Add this in the Event Listeners section
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+        try {
+            const user = auth.currentUser;
+            if (user) {
+                // Update user status to offline
+                await set(dbRef(database, `users/${user.uid}/status`), "offline");
+                
+                // Sign out
+                await signOut(auth);
+                
+                // Force redirect regardless of success
+                window.location.href = 'index.html';
+            }
+        } catch (error) {
+            console.error('Logout error details:', error);
+            showError(`Logout failed: ${error.message}`);
+            // Attempt force logout if normal logout failed
+            try {
+                await auth.signOut();
+                window.location.href = 'index.html';
+            } catch (finalError) {
+                console.error('Force logout failed:', finalError);
+                showError('Could not complete logout. Please clear browser cookies.');
+            }
+        }
     });
 }
 

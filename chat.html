@@ -11,20 +11,24 @@
 <body class="bg-gray-100 h-screen flex flex-col">
     <header class="bg-blue-600 text-white p-4 shadow-md">
         <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-2xl font-bold">Messenger</h1>
+            <div class="flex items-center space-x-4">
+                <a href="chat.html" class="bg-blue-700 hover:bg-blue-800 px-4 py-1 rounded flex items-center">
+                    <i class="fas fa-home mr-2"></i>Home
+                </a>
+                <h1 class="text-2xl font-bold">Messenger</h1>
+            </div>
             <div class="flex items-center space-x-4">
                 <span id="user-name" class="font-medium"></span>
                 <a href="profile.html" class="bg-blue-700 hover:bg-blue-800 px-4 py-1 rounded flex items-center">
                     <i class="fas fa-user mr-2"></i>Profile
                 </a>
-                <button id="logout-btn" class="bg-blue-700 hover:bg-blue-800 px-4 py-1 rounded">Logout</button>
             </div>
         </div>
     </header>
     
     <main class="flex-1 container mx-auto flex overflow-hidden">
         <!-- Sidebar for contacts and friend requests -->
-        <aside class="w-80 bg-white shadow-md flex flex-col h-full">
+        <aside class="w-90 bg-white shadow-md flex flex-col h-full">
             <!-- Tabs for navigating between chats, friends, and requests -->
             <div class="flex border-b flex-wrap">
                 <button id="chats-tab" class="flex-1 py-3 font-medium text-blue-600 border-b-2 border-blue-600">
