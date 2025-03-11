@@ -675,9 +675,14 @@ if (searchInput) {
         if (query.length >= 2) {
             try {
                 const users = await searchUsers(query);
-                // Handle search results - this could be wired to a different UI element
                 console.log("Search results:", users.length);
-                // You can wire this to display results in-line or in a dropdown
+                
+                // Dismiss keyboard on mobile after search
+                if (window.innerWidth <= 768) {
+                    searchInput.blur();
+                    document.activeElement.blur(); // Double ensure keyboard dismiss
+                }
+                
             } catch (error) {
                 console.error("Search error:", error);
             }
