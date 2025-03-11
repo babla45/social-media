@@ -57,6 +57,11 @@ const closeModalButtons = document.querySelectorAll('.close-modal');
 // Add this in the Event Listeners section
 const logoutBtn = document.getElementById('logout-btn');
 
+// Add these variables at the top of your file
+const profileLoading = document.getElementById('profile-loading');
+const profileContainer = document.getElementById('profile-container');
+const noProfileMessage = document.getElementById('no-profile-message');
+
 let currentUser = null;
 let userProfileData = {};
 
@@ -72,12 +77,7 @@ onAuthStateChanged(auth, async (user) => {
         
         try {
             // Load user profile data
-            await loadUserProfile();
-            
-            // Display username in header
-            if (userNameSpan) {
-                userNameSpan.textContent = userProfileData.username || '';
-            }
+            await loadProfileData();
             
             console.log("Profile loaded successfully:", userProfileData);
         } catch (error) {
@@ -91,108 +91,86 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 // Load user profile data
-async function loadUserProfile() {
+async function loadProfileData() {
+    // Show loading, hide other elements
+    if (profileLoading) profileLoading.classList.remove('hidden');
+    if (profileContainer) profileContainer.classList.add('hidden');
+    if (noProfileMessage) noProfileMessage.classList.add('hidden');
+    
     try {
-        if (!currentUser) return;
+        // Get current user
+        const user = auth.currentUser;
+        if (!user) {
+            // Not logged in, redirect to login
+            window.location.href = 'index.html';
+            return;
+        }
         
-        console.log("Loading profile for user:", currentUser.uid);
+        // Fetch user profile data
+        const userRef = dbRef(database, 'users/' + user.uid);
+        const snapshot = await get(userRef);
+        const userData = snapshot.val();
         
-        const userDataRef = dbRef(database, `users/${currentUser.uid}`);
-        const snapshot = await get(userDataRef);
+        // Hide loading
+        if (profileLoading) profileLoading.classList.add('hidden');
         
-        if (snapshot.exists()) {
-            userProfileData = snapshot.val();
+        if (userData && Object.keys(userData).length > 0) {
+            // Profile exists, show profile container
+            if (profileContainer) profileContainer.classList.remove('hidden');
             
-            console.log("Loaded user profile data:", userProfileData);
-            
-            // Fill form fields with user data (giving priority to database username)
-            if (usernameInput) {
-                // Use the username from database or fallback to displayName or email part
-                const displayUsername = userProfileData.username || currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'User');
-                console.log("Setting username input to:", displayUsername);
-                usernameInput.value = displayUsername;
-                
-                // If database username doesn't match the username in auth, update it
-                if (!userProfileData.username || userProfileData.username !== displayUsername) {
-                    console.log("Updating profile with correct username:", displayUsername);
-                    await update(dbRef(database, `users/${currentUser.uid}`), {
-                        username: displayUsername
-                    });
-                    
-                    // Update local data
-                    userProfileData.username = displayUsername;
-                }
-            }
-            
-            if (emailInput) {
-                emailInput.value = userProfileData.email || currentUser.email || '';
-            }
-            
-            if (bioInput) {
-                bioInput.value = userProfileData.bio || '';
-            }
-            
-            // Display profile picture
-            if (profilePicture) {
-                if (userProfileData.profile_picture) {
-                    profilePicture.innerHTML = `<img src="${userProfileData.profile_picture}" alt="Profile" class="w-full h-full object-cover">`;
-                } else {
-                    // Display initials if no profile picture
-                    const username = userProfileData.username || '';
-                    const initial = username ? username.charAt(0).toUpperCase() : '?';
-                    profilePicture.textContent = initial;
-                }
-            }
+            // Populate profile data fields
+            populateProfileData(userData);
         } else {
-            console.warn("User data not found in database for:", currentUser.uid);
-            
-            // If no user data exists, prioritize displayName over email username part
-            const displayName = currentUser.displayName || '';
-            const emailUsername = currentUser.email ? currentUser.email.split('@')[0] : '';
-            const defaultUsername = displayName || emailUsername || 'User';
-            
-            console.log("Creating default profile with username:", defaultUsername);
-            
-            const defaultProfileData = {
-                username: defaultUsername,
-                email: currentUser.email || '',
-                bio: '',
-                profile_picture: '',
-                status: "online",
-                created_at: serverTimestamp(),
-                last_updated: serverTimestamp()
-            };
-            
-            // Save this default data
-            await update(dbRef(database, `users/${currentUser.uid}`), defaultProfileData);
-            
-            // Update local copy
-            userProfileData = defaultProfileData;
-            
-            // Fill form fields with default data
-            if (usernameInput) {
-                usernameInput.value = defaultUsername;
-            }
-            
-            if (emailInput) {
-                emailInput.value = currentUser.email || '';
-            }
-            
-            // Update UI with default initial
-            if (profilePicture) {
-                const initial = defaultUsername.charAt(0).toUpperCase();
-                profilePicture.textContent = initial;
-            }
+            // No profile data, show the no profile message
+            if (noProfileMessage) noProfileMessage.classList.remove('hidden');
         }
-        
-        // Ensure username is shown in header
-        if (userNameSpan && userProfileData.username) {
-            userNameSpan.textContent = userProfileData.username;
-        }
-        
     } catch (error) {
-        console.error("Error loading user profile:", error);
-        throw new Error("Failed to load profile information");
+        console.error('Error loading profile:', error);
+        
+        // Hide loading, show error
+        if (profileLoading) profileLoading.classList.add('hidden');
+        
+        // Show no profile with error message
+        if (noProfileMessage) {
+            noProfileMessage.classList.remove('hidden');
+            const errorMsg = noProfileMessage.querySelector('p');
+            if (errorMsg) errorMsg.textContent = 'Error loading profile. Please try again.';
+        }
+    }
+}
+
+// Function to populate profile data (modify based on your profile structure)
+function populateProfileData(userData) {
+    // Store the profile data for use elsewhere in the app
+    userProfileData = userData;
+    
+    // Set form values
+    if (usernameInput && userData.username) {
+        usernameInput.value = userData.username;
+    }
+    
+    if (emailInput && userData.email) {
+        emailInput.value = userData.email;
+    }
+    
+    if (bioInput) {
+        bioInput.value = userData.bio || '';
+    }
+    
+    // Update profile picture
+    if (profilePicture) {
+        if (userData.profile_picture) {
+            // If user has a profile picture, display it
+            profilePicture.innerHTML = `<img src="${userData.profile_picture}" alt="Profile" class="w-full h-full object-cover">`;
+        } else {
+            // Otherwise display first letter of username
+            profilePicture.innerHTML = `<span>${(userData.username || 'U').charAt(0).toUpperCase()}</span>`;
+        }
+    }
+    
+    // Update header username display
+    if (userNameSpan) {
+        userNameSpan.textContent = userData.username || '';
     }
 }
 
@@ -535,3 +513,9 @@ function showPasswordError(message) {
 function hideElement(element) {
     if (element) element.classList.add('hidden');
 }
+
+// Instead, we can keep a simpler DOM ready listener if needed for other initializations
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("Profile page loaded");
+    // Any other DOM-ready initializations can go here
+});
