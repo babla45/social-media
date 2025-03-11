@@ -230,13 +230,26 @@ function loadUserChats() {
 
     const userChatsRef = ref(database, `userChats/${currentUser.uid}`);
     
+    // Show loading message
+    const loadingChatsMessage = document.getElementById('loading-chats-message');
+    const noChatsMessage = document.getElementById('no-chats-message');
+    
+    if (loadingChatsMessage) loadingChatsMessage.classList.remove('hidden');
+    if (noChatsMessage) noChatsMessage.classList.add('hidden');
+    
     // Use value listener to get initial data and then child added/removed
     userChatsListener = onValue(userChatsRef, (snapshot) => {
         const chats = snapshot.val();
+        
+        // Hide loading message
+        if (loadingChatsMessage) loadingChatsMessage.classList.add('hidden');
+        
         if (chats && Object.keys(chats).length > 0) {
-            noChatsMessage.classList.add('hidden');
+            // Has conversations
+            if (noChatsMessage) noChatsMessage.classList.add('hidden');
         } else {
-            noChatsMessage.classList.remove('hidden');
+            // No conversations
+            if (noChatsMessage) noChatsMessage.classList.remove('hidden');
         }
     });
 

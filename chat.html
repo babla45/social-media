@@ -60,7 +60,10 @@
             <!-- Tab content -->
             <div id="chats-content" class="flex-1 overflow-y-auto">
                 <!-- Chat contacts will be populated here -->
-                <div class="p-4 text-center text-gray-500" id="no-chats-message">
+                <div class="p-4 text-center text-gray-500" id="loading-chats-message">
+                    <i class="fas fa-circle-notch fa-spin mr-2"></i> Loading conversations...
+                </div>
+                <div class="p-4 text-center text-gray-500 hidden" id="no-chats-message">
                     No conversations yet. Start chatting with your friends!
                 </div>
             </div>
