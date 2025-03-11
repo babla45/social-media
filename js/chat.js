@@ -732,15 +732,15 @@ function createChatElement(chatId, userId, userData, chat) {
         <div class="w-10 h-10 rounded-full  bg-gray-300 flex items-center justify-center mr-3">
             <span>${userData.username.charAt(0).toUpperCase()}</span>
         </div>
-        <div class="flex-1">
+        <div class="flex-1 min-w-0">
             <div class="flex justify-between">
-                <h3 class="font-medium">${userData.username}</h3>
-                <span class="text-xs text-gray-500">Last message at: ${lastMessageTime}</span>
+                <h3 class="font-medium truncate">${userData.username}</h3>
+                <span class="text-xs text-gray-500 whitespace-nowrap">Time: ${lastMessageTime}</span>
             </div>
+            <p class="text-sm text-gray-500 truncate max-w-[90%]">${lastMessageText}</p>
         </div>
         <div class="ml-2 w-3 h-3 rounded-full ${statusClass}"></div>
     `;
-    // <p class="text-sm text-gray-500 truncate">${lastMessageText}</p>
     //last message removed
 
     chatElement.addEventListener('click', () => openChat(chatId, userId, userData.username));
