@@ -153,6 +153,22 @@
     padding-top: 0.25rem;    /* 4px */
     padding-bottom: 0.25rem; /* 4px */
     min-height: 32px;        /* Consistent height */
+    min-width: 100px;        /* Fixed minimum width for all friend buttons */
+    width: 100px;            /* Fixed width for consistent appearance */
+}
+
+/* Specific styling for friend action buttons to ensure consistency */
+.friend-action-btn {
+    min-width: 100px;
+    width: 100px;
+    padding: 0.25rem 0;
+    border-radius: 9999px; /* rounded-full */
+    text-align: center;
+    font-weight: 500;
+    height: 32px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
 }
 
 /* Chat area improvements */
@@ -207,6 +223,14 @@
     
     #message-input {
         border-radius: 20px;
+    }
+
+    /* Responsive button widths for smaller screens */
+    .browse-user-action-btn,
+    .friend-action-btn {
+        min-width: 80px;
+        width: 80px;
+        font-size: 0.875rem;
     }
 }
 

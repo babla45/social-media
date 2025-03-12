@@ -238,7 +238,7 @@ function showSearchResults(users) {
                 switch(status) {
                     case 'friends':
                         actionButton.textContent = 'Message';
-                        actionButton.className = 'px-4 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 browse-user-action-btn'; // Added class
+                        actionButton.className = 'friend-action-btn bg-blue-500 text-white hover:bg-blue-600'; 
                         actionButton.onclick = (e) => {
                             e.preventDefault();
                             startChat(user.id, user.username);
@@ -246,12 +246,12 @@ function showSearchResults(users) {
                         break;
                     case 'pending_sent':
                         actionButton.textContent = 'Request Sent';
-                        actionButton.className = 'px-4 py-1 bg-gray-300 text-gray-600 rounded-full cursor-default browse-user-action-btn'; // Added class
+                        actionButton.className = 'friend-action-btn bg-gray-300 text-gray-600 cursor-default';
                         actionButton.disabled = true;
                         break;
                     case 'pending_received':
                         actionButton.textContent = 'Accept';
-                        actionButton.className = 'px-4 py-1 bg-green-500 text-white rounded-full hover:bg-green-600 browse-user-action-btn'; // Added class
+                        actionButton.className = 'friend-action-btn bg-green-500 text-white hover:bg-green-600';
                         actionButton.onclick = (e) => {
                             e.preventDefault();
                             handleAcceptFriendRequest(user.id);
@@ -259,13 +259,13 @@ function showSearchResults(users) {
                         break;
                     default:
                         actionButton.textContent = 'Add Friend';
-                        actionButton.className = 'px-4 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 browse-user-action-btn'; // Added class
+                        actionButton.className = 'friend-action-btn bg-blue-500 text-white hover:bg-blue-600';
                         actionButton.onclick = (e) => {
                             e.preventDefault();
                             
                             // Immediate feedback by updating button
                             actionButton.textContent = 'Request Sent';
-                            actionButton.className = 'px-4 py-1 bg-gray-300 text-gray-600 rounded-full cursor-default browse-user-action-btn'; // Added class
+                            actionButton.className = 'friend-action-btn bg-gray-300 text-gray-600 cursor-default';
                             actionButton.disabled = true;
                             
                             // Use the function from friends2.js
@@ -295,7 +295,7 @@ function showSearchResults(users) {
             .catch(error => {
                 console.error('Error checking friendship status:', error);
                 actionButton.textContent = 'Add Friend';
-                actionButton.className = 'px-4 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 browse-user-action-btn'; // Added class
+                actionButton.className = 'friend-action-btn bg-blue-500 text-white hover:bg-blue-600';
                 actionButton.onclick = (e) => {
                     e.preventDefault();
                     sendFriendRequest(user.id, user.username, actionButton);
@@ -317,6 +317,7 @@ async function handleAcceptFriendRequest(userId) {
         if (event && event.target && event.target.textContent === 'Accept') {
             const button = event.target;
             button.textContent = 'Message';
+            button.className = 'friend-action-btn bg-blue-500 text-white hover:bg-blue-600';
             button.onclick = () => startChat(userId, result.username);
         }
     }
@@ -326,7 +327,7 @@ async function handleAcceptFriendRequest(userId) {
 function handleAddFriendClick(userId, username, button) {
     // Immediately update button appearance
     button.textContent = 'Request Sent';
-    button.className = 'px-4 py-1 bg-gray-300 text-gray-600 rounded-full cursor-default browse-user-action-btn'; // Added class
+    button.className = 'friend-action-btn bg-gray-300 text-gray-600 cursor-default';
     button.disabled = true;
     
     // Use the function from friends2.js
@@ -447,7 +448,7 @@ function loadFriends() {
             
             const messageBtn = document.createElement('button');
             messageBtn.textContent = 'Message';
-            messageBtn.className = 'px-4 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600';
+            messageBtn.className = 'friend-action-btn bg-blue-500 text-white hover:bg-blue-600';
             messageBtn.onclick = () => startChat(friendId, friendData.username);
             
             friendElement.appendChild(userInfo);
@@ -637,22 +638,22 @@ async function loadAllUsers(forceRefresh = false) {
                     switch(status) {
                         case 'friends':
                             actionButton.textContent = 'Message';
-                            actionButton.className = 'px-4 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 browse-user-action-btn'; // Added class
+                            actionButton.className = 'friend-action-btn bg-blue-500 text-white hover:bg-blue-600';
                             actionButton.onclick = () => startChat(user.id, user.username);
                             break;
                         case 'pending_sent':
                             actionButton.textContent = 'Request Sent';
-                            actionButton.className = 'px-4 py-1 bg-gray-300 text-gray-600 rounded-full cursor-default browse-user-action-btn'; // Added class
+                            actionButton.className = 'friend-action-btn bg-gray-300 text-gray-600 cursor-default';
                             actionButton.disabled = true;
                             break;
                         case 'pending_received':
                             actionButton.textContent = 'Accept';
-                            actionButton.className = 'px-4 py-1 bg-green-500 text-white rounded-full hover:bg-green-600 browse-user-action-btn'; // Added class
+                            actionButton.className = 'friend-action-btn bg-green-500 text-white hover:bg-green-600';
                             actionButton.onclick = () => acceptFriendRequest(user.id);
                             break;
                         default:
                             actionButton.textContent = 'Add Friend';
-                            actionButton.className = 'px-4 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 browse-user-action-btn'; // Added class
+                            actionButton.className = 'friend-action-btn bg-blue-500 text-white hover:bg-blue-600';
                             actionButton.onclick = () => {
                                 // Call our new function with needed arguments
                                 handleAddFriendClick(user.id, user.username, actionButton);
@@ -661,7 +662,7 @@ async function loadAllUsers(forceRefresh = false) {
                 }).catch(err => {
                     console.error("Error checking friendship status:", err);
                     actionButton.textContent = 'Add Friend';
-                    actionButton.className = 'px-4 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 browse-user-action-btn'; // Added class
+                    actionButton.className = 'friend-action-btn bg-blue-500 text-white hover:bg-blue-600';
                     actionButton.onclick = () => handleAddFriendClick(user.id, user.username, actionButton);
                 });
             }

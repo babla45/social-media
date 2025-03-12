@@ -95,15 +95,21 @@ async function handleSignup(e) {
         });
         console.log("Username field force-updated");
         
-        // Wait a moment to ensure database writes complete
+        // Dispatch custom event to show success message
+        document.dispatchEvent(new CustomEvent('accountCreated', { 
+            detail: { username: username } 
+        }));
+        
+        // Save username in sessionStorage that persists through redirects
+        sessionStorage.setItem('confirmed_username', username);
+        console.log("Account created successfully with username:", username);
+        
+        // Wait a moment to show success message before redirect
         setTimeout(() => {
-            // Save username in sessionStorage that persists through redirects
-            sessionStorage.setItem('confirmed_username', username);
             console.log("Redirecting to chat.html with username:", username);
-            
             // Redirect to the chat page with username as parameter
             window.location.href = `chat.html?username=${encodeURIComponent(username)}&signup=true`;
-        }, 1000);
+        }, 2000); // Show success message for 2 seconds before redirecting
         
     } catch (error) {
         console.error("Signup error:", error);
