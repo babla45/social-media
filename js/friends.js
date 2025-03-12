@@ -45,6 +45,10 @@ const browseContent = document.getElementById('browse-content');
 const allUsersContainer = document.getElementById('all-users-container');
 const loadingUsers = document.getElementById('loading-users');
 const refreshUsersBtn = document.getElementById('refresh-users');
+const adminPanel = document.getElementById('admin-panel');
+const closeAdminBtn = document.getElementById('close-admin');
+const adminUsersList = document.getElementById('admin-users-list');
+const adminSearch = document.getElementById('admin-search');
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
@@ -63,6 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user) {
             loadFriends();
             loadFriendRequests();
+            toggleAdminLink(user);
         }
     });
 
@@ -138,6 +143,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (noOnlineMsg) noOnlineMsg.remove();
             }
         });
+    }
+
+    // Update selector to use the ID
+    const messengerTitle = document.getElementById('messenger-title');
+    if (messengerTitle) {
+        messengerTitle.addEventListener('click', handleTripleClick);
+    }
+
+    // Admin panel close button
+    if (closeAdminBtn) {
+        closeAdminBtn.addEventListener('click', () => {
+            adminPanel.classList.add('hidden');
+        });
+    }
+
+    // Admin search input
+    if (adminSearch) {
+        adminSearch.addEventListener('input', debounce(searchAdminUsers, 300));
     }
 });
 
@@ -717,3 +740,121 @@ window.startChat = startChat;
 
 // Export functions that might be needed elsewhere
 export { loadFriends, loadFriendRequests, loadAllUsers };
+
+// Add this function
+async function toggleAdminLink(user) {
+    console.log('Checking admin status for:', user.email);
+    const adminLink = document.getElementById('admin-link');
+    if (!adminLink) return;
+    
+    try {
+        // First check auth email directly
+        if (user.email === 'bilasislam5643@gmail.com') {
+            adminLink.classList.remove('hidden');
+            adminLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                adminPanel.classList.remove('hidden');
+                loadAllUsersForAdmin();
+            });
+            return;
+        }
+        
+        // Fallback to database check
+        const userRef = ref(database, `users/${user.uid}`);
+        const snapshot = await get(userRef);
+        
+        if (snapshot.exists() && snapshot.val().email === 'bilasislam5643@gmail.com') {
+            adminLink.classList.remove('hidden');
+            adminLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                adminPanel.classList.remove('hidden');
+                loadAllUsersForAdmin();
+            });
+        } else {
+            adminLink.classList.add('hidden');
+        }
+        
+        if (snapshot.exists()) {
+            console.log('Database email:', snapshot.val().email);
+        }
+    } catch (error) {
+        console.error('Error checking admin status:', error);
+        adminLink.classList.add('hidden');
+    }
+}
+
+async function loadAllUsersForAdmin() {
+    const usersRef = ref(database, 'users');
+    const snapshot = await get(usersRef);
+    
+    if (!snapshot.exists()) return;
+    
+    adminUsersList.innerHTML = '';
+    
+    snapshot.forEach((childSnapshot) => {
+        const user = childSnapshot.val();
+        const tr = document.createElement('tr');
+        tr.className = 'border-b';
+        tr.innerHTML = `
+            <td class="p-2">${user.username || 'N/A'}</td>
+            <td class="p-2">${user.email || 'N/A'}</td>
+            <td class="p-2">${user.status || 'offline'}</td>
+            <td class="p-2">${user.friends ? Object.keys(user.friends).length : 0}</td>
+            <td class="p-2 text-center">
+                <button class="delete-user-btn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600" 
+                        data-userid="${childSnapshot.key}">
+                    Delete
+                </button>
+            </td>
+        `;
+        
+        tr.querySelector('.delete-user-btn').addEventListener('click', async (e) => {
+            if (confirm('Are you sure you want to delete this user and all their data?')) {
+                await deleteUser(e.target.dataset.userid);
+                tr.remove();
+            }
+        });
+        
+        adminUsersList.appendChild(tr);
+    });
+}
+
+async function deleteUser(userId) {
+    // Delete user from authentication
+    // Note: This requires Firebase Admin SDK on backend in production
+    // For this demo, we'll only delete database entries
+    
+    // Delete user data
+    const userRef = ref(database, `users/${userId}`);
+    await remove(userRef);
+    
+    // Delete messages
+    const messagesRef = ref(database, `messages/${userId}`);
+    await remove(messagesRef);
+    
+    // Delete friends
+    const friendsRef = ref(database, `friends/${userId}`);
+    await remove(friendsRef);
+    
+    // Delete friend requests
+    const requestsRef = ref(database, `friendRequests/${userId}`);
+    await remove(requestsRef);
+}
+
+function searchAdminUsers() {
+    const term = adminSearch.value.toLowerCase();
+    const rows = adminUsersList.querySelectorAll('tr');
+    
+    rows.forEach(row => {
+        const username = row.cells[0].textContent.toLowerCase();
+        const email = row.cells[1].textContent.toLowerCase();
+        if (username.includes(term) || email.includes(term)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Add to exports
+export { loadAllUsersForAdmin, deleteUser };

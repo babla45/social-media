@@ -323,3 +323,43 @@
         padding-bottom: 1rem;
     }
 }
+
+/* Admin Panel Styles */
+#admin-panel table {
+    border-collapse: collapse;
+}
+
+#admin-panel th {
+    background-color: #f3f4f6;
+}
+
+#admin-panel tr:hover {
+    background-color: #f9fafb;
+}
+
+.delete-user-btn {
+    transition: background-color 0.2s ease;
+}
+
+#messenger-title {
+    transition: all 0.2s ease;
+}
+
+#messenger-title:active {
+    transform: scale(0.95);
+}
+
+#admin-link {
+    transition: all 0.2s ease;
+    margin-right: 0.5rem;
+}
+
+#admin-link:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#admin-link i {
+    font-size: 0.9em;
+    margin-right: 0.5rem;
+}

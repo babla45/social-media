@@ -50,3 +50,5 @@ A real-time messaging application with friend request functionality built using 
 - Uses Firebase Authentication for user management
 - Uses Firebase Realtime Database for storing messages and user data
 - Real-time updates for messages and online status
+- Admin panel accessible by triple-clicking the header title (admin@example.com)
+- User management capabilities for administrators
